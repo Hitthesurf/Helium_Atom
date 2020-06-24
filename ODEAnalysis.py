@@ -165,13 +165,13 @@ class ODEAnalysis():
 
     def RungeKutta(self, T, t_0, x_0):
         N = int(T//self.dt) + 1 #As Start at zero so need an extra addition of dt
-        t = np.zeros(N)
+        t = np.zeros(N+1)
         num_x = len(x_0)
         
         if type(x_0[0]) ==  np.ndarray or type(x_0[0]) == list:
-            x = np.zeros([N, num_x, len(x_0[0])])
+            x = np.zeros([N+1, num_x, len(x_0[0])])
         else:
-            x = np.zeros([N, num_x], dtype=np.complex)
+            x = np.zeros([N+1, num_x], dtype=np.complex)
         
         
         
@@ -187,6 +187,19 @@ class ODEAnalysis():
 
             x[n+1] = x[n] + (1/6)*(k1 + 2*k2 + 2*k3 + k4)
             t[n+1] = t[n] + self.dt
+            
+        #Last step to make sure it stops on correct value
+        
+        last_dt = T - t[N-1]
+        k1 = (last_dt)*self.f(t[N-1], *x[N-1])
+        k2 = (last_dt)*self.f(t[N-1]+last_dt/2, *(x[N-1]+k1/2))
+        k3 = (last_dt)*self.f(t[N-1]+last_dt/2, *(x[N-1]+k2/2))
+        k4 = (last_dt)*self.f(t[N-1]+last_dt, *(x[N-1]+k3))
+
+        x[N] = x[N-1] + (1/6)*(k1 + 2*k2 + 2*k3 + k4)
+        t[N] = t[N-1] + last_dt
+        
+        #print("Time: " + str(t[-5:]))
 
         return t, x
     
