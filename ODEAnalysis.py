@@ -142,7 +142,7 @@ def SigFig(num, SF):
 
                 if to_add != 0:
                     # Since computers make mistakes when adding due to working in base 2 need to add them up
-                    # as strings by using decimal again
+                    # as strings by using decimal
                     my_num = Decimal(real_part) + Decimal(str(to_add))
                     return float(str(my_num)+exponent)
 
@@ -164,7 +164,7 @@ class ODEAnalysis():
         self.f = FuncToUse
 
     def RungeKutta(self, T, t_0, x_0):
-        N = int(T//self.dt)
+        N = int(T//self.dt) + 1 #As Start at zero so need an extra addition of dt
         t = np.zeros(N)
         num_x = len(x_0)
         
