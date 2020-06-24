@@ -1,6 +1,7 @@
 import numpy as np
 import matplotlib as mpl
 import matplotlib.pyplot as plt
+from decimal import Decimal
 from mpl_toolkits.mplot3d import Axes3D
 
 
@@ -25,8 +26,132 @@ def ExampleWithMonoDromy(t, x, y, px, py, M):
     M_dot = L*M
     
     return np.array([x_dot, y_dot, px_dot, py_dot, M_dot])
-    
 
+
+def SigFig(num, SF):
+    """Significant Figures
+
+    This calculates the rounding of numbers using significant figures,
+    num can be complex or in standard form. Can also input an array of elements.
+    Also works for matrix and multidimensional arrays
+
+    Parameters
+    ----------
+    num : float
+        The number to be rounded by the significant figures method
+    SF : int
+        The number of significant figures needed.
+
+    Returns
+    -------
+    float:
+        The number reduced to its significant figures
+    numpy array of float:
+        Only if entered result is a list or numpy array
+
+    Examples
+    --------
+
+    SigFig([0.02156,0.005926,5453000 + 0.02156j],3)
+    >>> [0.0216, 0.00593, 5450000 + 0.0216j]
+
+    SigFig(54, 4)
+    >>> 54
+
+    SigFig(5.332, 2)
+    >>> 5.3
+
+    SigFig(159321.2, 3)
+    >>> 159000
+
+    SigFig(0.012345, 4)
+    >>> 0.01235
+
+    SigFig(32.3+52.01j, 2)
+    >>> 32 + 52j
+
+    SigFig(0.02156, 2)
+    >>> 0.022
+
+    SigFig(5453000 + 0.02156j, 2)
+    >>> 5500000 + 0.022j
+
+    SigFig(1.3452e-5,3)
+    >>> 1.35e-5
+
+    SigFig(0.005926,3)
+    >>> 0.00593
+
+    SigFig(0,5) 
+    >>> 0
+
+    SigFig(0*1j,5)
+    >>> 0
+    """
+
+    if type(num) == list or type(num) == np.ndarray or type(num) == np.matrix:
+        is_matrix = False
+        if type(num) == np.matrix:
+            is_matrix = True
+            num = np.array(num)
+
+        SF_nums = []
+        for selected_num in num:
+            SF_nums.append(SigFig(selected_num, SF))
+
+        if is_matrix:
+            return np.matrix(SF_nums)
+        return np.array(SF_nums)
+
+    real_part = str(num.real)
+    imag_part = str(num.imag)
+
+    if num.real == 0 and num.imag == 0:
+        return 0
+
+    if num.imag == 0:
+        # Real number
+        exponent = 'e0'
+
+        # Remove and rember exponent
+        if 'e' in real_part:
+            exp_pos = real_part.find('e')
+            exponent = real_part[exp_pos:]
+            real_part = real_part[:exp_pos]
+
+        dot_pos = len(real_part)
+        if '.' in real_part:
+            dot_pos = real_part.find('.')
+            # Remove Dot
+            real_part = real_part[:dot_pos] + real_part[dot_pos+1:]
+
+        # Add zeros to end to make sure it doesn't go out of range
+        real_part = real_part + '0'*(SF+1)
+
+        for index in range(0, len(real_part)):
+            if real_part[index] != '0':
+                # Found Start Of Num
+                Carry_point = real_part[index + SF]
+                real_part = real_part[:index + SF] + '0'*len(real_part)
+                # Insert Dot back in
+                real_part = real_part[:dot_pos] + '.' + real_part[dot_pos:]
+                to_add = 0
+                if int(Carry_point) >= 5:
+                    # Then it goes up
+                    to_add = 10**(dot_pos - (index+SF))
+
+                if to_add != 0:
+                    # Since computers make mistakes when adding due to working in base 2 need to add them up
+                    # as strings by using decimal again
+                    my_num = Decimal(real_part) + Decimal(str(to_add))
+                    return float(str(my_num)+exponent)
+
+                if to_add == 0:
+                    return float(real_part+exponent)
+
+    if num.imag != 0:
+        # Complex or imag number
+        return SigFig(num.real, SF) + SigFig(num.imag, SF)*1j
 
 class ODEAnalysis():
     '''Plot PhasePlane by using PlotPhasePlane()
@@ -74,23 +199,23 @@ class ODEAnalysis():
         
         return np.linalg.eig(x[-1][len(x_0):].reshape(-1,len(x_0)))
         
-    def getMonoDromy(self, T, x_0):
+    def getMonoDromy(self, T, x_0, SF = 3):
         self.f = self.MonoDromyFunc
         I = np.identity(len(x_0)).reshape(1,-1)[0]
         
         t, x = self.RungeKutta(T, 0, [*x_0,*I])
         
-        return x[-1][len(x_0):].reshape(-1,len(x_0))
+        return SigFig(x[-1][len(x_0):].reshape(-1,len(x_0)), SF)
 
         
-    def ShowEigen(self, T, x_0, IntegrateOnOrbit = False, epsilon = 1e-4):
+    def ShowEigen(self, T, x_0, IntegrateOnOrbit = False, epsilon = 1e-4, SF = 3):
         I = np.identity(len(x_0)).reshape(1,-1)[0]
         eigenvals, eigenvectors = self.CalcEigen(T,x_0)
         for index in range(0, len(eigenvals)):
-            my_string = "Value " + str(index) + ": " + str(eigenvals[index]) + "\n"
+            my_string = "Value " + str(index) + ": " + str(SigFig(eigenvals[index], SF)) + "\n"
             my_string += "Vector " + str(index) + ": \n" 
             for eigen_vector_component in eigenvectors[:,index]:
-                my_string += str(eigen_vector_component) + ", \n"
+                my_string += str(SigFig(eigen_vector_component, SF)) + ", \n"
             
             if IntegrateOnOrbit:
                 #only compare direction that have been changed.
@@ -100,8 +225,8 @@ class ODEAnalysis():
                 final_x = x[-1][:len(x_0)]                
                 diff_after = abs(x_0 - final_x)
                 
-                my_string += "Start: " + str(new_x_0) + "\n"
-                my_string += "End: " + str(final_x)+ "\n"
+                my_string += "Start: " + str(SigFig(new_x_0, SF)) + "\n"
+                my_string += "End: " + str(SigFig(final_x, SF))+ "\n"
                 
                 Stable = True
                 for index in range(0,len(x_0)):
