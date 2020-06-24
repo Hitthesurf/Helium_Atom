@@ -228,15 +228,15 @@ class ODEAnalysis():
                 my_string += "Start: " + str(SigFig(new_x_0, SF)) + "\n"
                 my_string += "End: " + str(SigFig(final_x, SF))+ "\n"
                 
-                Stable = True
+                AsyStable = True
                 for index in range(0,len(x_0)):
                     if diff_before[index] != 0:
                         if 1.1*diff_after[index]>diff_before[index]: # To make sure it is definitely not stable
-                            Stable = False
+                            AsyStable = False
                 
-                if Stable:
+                if AsyStable:
                     my_string += "Asymptotically Stable in this eigenvector direction \n"
-                if not(Stable):
+                if AsyStable is False:
                     my_string += "Not Asymptotically Stable in this eigenvector direction \n"
                 
             
