@@ -5,26 +5,49 @@ from decimal import Decimal
 from mpl_toolkits.mplot3d import Axes3D
 
 
-def examplefunc(t, x1, x2):
+def examplefunc1(t, x1, x2):
     f1 = x2
-    f2 = np.sin(np.cos(x2)*x1)*np.sin(x1)
+    f2 = np.cos(x1)
     f3 = 0
     return np.array([f1, f2])
 
-def ExampleWithMonoDromy(t, x, y, px, py, M):
-    L = np.matrix([[0, 0, 1, 0],
-                  [0, 0, 0, 5],
-                  [1, 0, 0, 0],
-                  [0, -5, 0, 0]])
-    
-    
+
+def examplefunc1_with_lin(t, x1, x2, M):
+    L = np.matrix([[0, 1],
+                   [-np.sin(x1), 0]])
+
+    f1 = x2
+    f2 = np.cos(x1)
+
+    M_dot = L*M
+
+    return np.array([f1, f2, M_dot])
+
+
+def examplefunc2(t, x, y, px, py):
+
     x_dot = 1*px
     y_dot = 5*py
     px_dot = 1*x
     py_dot = -5*y
-    
+
+    return np.array([x_dot, y_dot, px_dot, py_dot])
+
+
+def examplefunc2_with_lin(t, x, y, px, py, M):
+
+    L = np.matrix([[0, 0, 1, 0],
+                   [0, 0, 0, 5],
+                   [1, 0, 0, 0],
+                   [0, -5, 0, 0]])
+
+    x_dot = 1*px
+    y_dot = 5*py
+    px_dot = 1*x
+    py_dot = -5*y
+
     M_dot = L*M
-    
+
     return np.array([x_dot, y_dot, px_dot, py_dot, M_dot])
 
 
@@ -153,28 +176,30 @@ def SigFig(num, SF):
         # Complex or imag number
         return SigFig(num.real, SF) + SigFig(num.imag, SF)*1j
 
+
 class ODEAnalysis():
     '''Plot PhasePlane by using PlotPhasePlane()
         Plot 3D PhaseSpace by using PlotPhaseSpace3D()
         Calculate eingenvalues and eigenvectors of monodromy matrix by using CalcEigen
     '''
-    def __init__(self, FuncToUse=examplefunc, StepOfTime=0.01):
-        self.standard = FuncToUse
+
+    def __init__(self, ODE_To_Use=None, ODELin_To_Use=None, StepOfTime=0.01):
         self.dt = StepOfTime
-        self.f = FuncToUse
+        self.f = ODE_To_Use  # Current function of RungeKutta
+        self.ODE = ODE_To_Use  # ODE system with linearisation
+        self.ODELin = ODELin_To_Use  # ODE system without linearisation
 
     def RungeKutta(self, T, t_0, x_0):
-        N = int(T//self.dt) + 1 #As Start at zero so need an extra addition of dt
+        # As Start at zero so need an extra addition of dt
+        N = int(T//self.dt) + 1
         t = np.zeros(N+1)
         num_x = len(x_0)
-        
-        if type(x_0[0]) ==  np.ndarray or type(x_0[0]) == list:
+
+        if type(x_0[0]) == np.ndarray or type(x_0[0]) == list:
             x = np.zeros([N+1, num_x, len(x_0[0])])
         else:
             x = np.zeros([N+1, num_x], dtype=np.complex)
-        
-        
-        
+
         # Initial Conditions
         x[0] = x_0
         t[0] = t_0
@@ -187,9 +212,9 @@ class ODEAnalysis():
 
             x[n+1] = x[n] + (1/6)*(k1 + 2*k2 + 2*k3 + k4)
             t[n+1] = t[n] + self.dt
-            
-        #Last step to make sure it stops on correct value
-        
+
+        # Last step to make sure it stops on correct value
+
         last_dt = T - t[N-1]
         k1 = (last_dt)*self.f(t[N-1], *x[N-1])
         k2 = (last_dt)*self.f(t[N-1]+last_dt/2, *(x[N-1]+k1/2))
@@ -198,76 +223,79 @@ class ODEAnalysis():
 
         x[N] = x[N-1] + (1/6)*(k1 + 2*k2 + 2*k3 + k4)
         t[N] = t[N-1] + last_dt
-        
+
         #print("Time: " + str(t[-5:]))
 
         return t, x
-    
-    def CalcEigen(self, T, x_0):
-        #Calculate correct size of M(0)
-        self.f = self.MonoDromyFunc
-        I = np.identity(len(x_0)).reshape(1,-1)[0]
-        
-        t, x = self.RungeKutta(T, 0, [*x_0,*I])
-        
-        return np.linalg.eig(x[-1][len(x_0):].reshape(-1,len(x_0)))
-        
-    def getMonoDromy(self, T, x_0, SF = 3):
-        self.f = self.MonoDromyFunc
-        I = np.identity(len(x_0)).reshape(1,-1)[0]
-        
-        t, x = self.RungeKutta(T, 0, [*x_0,*I])
-        
-        return SigFig(x[-1][len(x_0):].reshape(-1,len(x_0)), SF)
 
+    def CalcEigen(self, T, x_0):
+        # Calculate correct size of M(0)
+        self.f = self.MonoDromyFunc
+        I = np.identity(len(x_0)).reshape(1, -1)[0]
+
+        t, x = self.RungeKutta(T, 0, [*x_0, *I])
+        self.f = self.ODE
+
+        return np.linalg.eig(x[-1][len(x_0):].reshape(-1, len(x_0)))
+
+    def getMonoDromy(self, T, x_0, SF=3):
+        self.f = self.MonoDromyFunc
+        I = np.identity(len(x_0)).reshape(1, -1)[0]
+
+        t, x = self.RungeKutta(T, 0, [*x_0, *I])
         
-    def ShowEigen(self, T, x_0, IntegrateOnOrbit = False, epsilon = 1e-4, SF = 3):
-        I = np.identity(len(x_0)).reshape(1,-1)[0]
-        eigenvals, eigenvectors = self.CalcEigen(T,x_0)
+        self.f = self.ODE
+        
+        return SigFig(x[-1][len(x_0):].reshape(-1, len(x_0)), SF)
+
+    def ShowEigen(self, T, x_0, IntegrateOnOrbit=False, epsilon=1e-4, SF=3):
+        I = np.identity(len(x_0)).reshape(1, -1)[0]
+        eigenvals, eigenvectors = self.CalcEigen(T, x_0)
+        self.f = self.ODE
         for index in range(0, len(eigenvals)):
-            my_string = "Value " + str(index) + ": " + str(SigFig(eigenvals[index], SF)) + "\n"
-            my_string += "Vector " + str(index) + ": \n" 
-            for eigen_vector_component in eigenvectors[:,index]:
+            my_string = "Value " + str(index) + ": " + \
+                str(SigFig(eigenvals[index], SF)) + "\n"
+            my_string += "Vector " + str(index) + ": \n"
+            for eigen_vector_component in eigenvectors[:, index]:
                 my_string += str(SigFig(eigen_vector_component, SF)) + ", \n"
-            
+
             if IntegrateOnOrbit:
-                #only compare direction that have been changed.
-                diff_before = abs(epsilon*eigenvectors[:,index])
-                new_x_0 = x_0 + epsilon*eigenvectors[:,index]
-                t, x = self.RungeKutta(T,0, [*new_x_0,*I])
-                final_x = x[-1][:len(x_0)]                
+                # only compare direction that have been changed.
+                diff_before = abs(epsilon*eigenvectors[:, index])
+                new_x_0 = x_0 + epsilon*eigenvectors[:, index]
+                t, x = self.RungeKutta(T, 0, [*new_x_0])
+                final_x = x[-1][:len(x_0)]
                 diff_after = abs(x_0 - final_x)
-                
+
                 my_string += "Start: " + str(SigFig(new_x_0, SF)) + "\n"
-                my_string += "End: " + str(SigFig(final_x, SF))+ "\n"
-                
+                my_string += "End: " + str(SigFig(final_x, SF)) + "\n"
+
                 AsyStable = True
-                for index in range(0,len(x_0)):
+                for index in range(0, len(x_0)):
                     if diff_before[index] != 0:
-                        if 1.1*diff_after[index]>diff_before[index]: # To make sure it is definitely not stable
+                        # To make sure it is definitely not stable
+                        if 1.1*diff_after[index] > diff_before[index]:
                             AsyStable = False
-                
+
                 if AsyStable:
                     my_string += "Asymptotically Stable in this eigenvector direction \n"
                 if AsyStable is False:
                     my_string += "Not Asymptotically Stable in this eigenvector direction \n"
-                
-            
+
             print(my_string)
-    
+
     def MonoDromyFunc(self, t, *R):
-        #Get components and turn into matrix
+        # Get components and turn into matrix
         ele = np.int(np.round((-1+(1+4*len(R))**0.5)/2))
-        new_R = np.array(R).reshape(-1,ele)
+        new_R = np.array(R).reshape(-1, ele)
         qp = new_R[0]
         M = np.matrix(new_R[1:])
-        W = self.standard(t, *qp, M)
-        new_M = np.array(W[-1]).reshape(1,-1)[0]
+        W = self.ODELin(t, *qp, M)
+        new_M = np.array(W[-1]).reshape(1, -1)[0]
         new_qp = W[0:ele]
-        
+
         return np.array([*new_qp, *new_M])
-        
-        
+
     def PlotTimeSeries(self, T, t_0, x_0, separate=False):
         t, x = self.RungeKutta(T, t_0, x_0)
 
@@ -282,7 +310,7 @@ class ODEAnalysis():
         if separate is False:
             plt.figure(figsize=(10, 5))
             for index in range(0, len(x[0])):
-                plt.plot(t, x[:, index], label="x" + str(index + 1))
+                plt.plot(t, x[:, index].real, label="x" + str(index + 1))
 
             plt.legend(loc='upper right', fontsize=12)
             plt.title("Time Series")
@@ -302,7 +330,7 @@ class ODEAnalysis():
         plt.figure(figsize=(13, 8))
         for cord in cords:
             t, x = self.RungeKutta(T, t_0, cord)
-            plt.plot(x[:, (xaxis-1)], x[:, (yaxis-1)], color="red")
+            plt.plot(x[:, (xaxis-1)].real, x[:, (yaxis-1)].real, color="red")
 
             # Add arrow for direction
             direction = self.f(0, *cord)
@@ -314,8 +342,7 @@ class ODEAnalysis():
         plt.xlim(*xrange)
         plt.ylim(*yrange)
         plt.show()
-    
-    
+
     def PlotPhaseSpace3D(self, xrange, yrange, zrange, T, xaxis=1, yaxis=2, zaxis=3, t_0=0, gap=0.5):
         width = np.arange(xrange[0], xrange[1]+0.01, gap)
         height = np.arange(yrange[0], yrange[1]+0.01, gap)
@@ -343,6 +370,6 @@ class ODEAnalysis():
                     # Remove
                     bold_x = np.delete(bold_x, point_index, 0)
 
-            ax.plot(bold_x[:, xaxis-1], bold_x[:, yaxis-1], bold_x[:, zaxis-1])
+            ax.plot(bold_x[:, xaxis-1].real, bold_x[:, yaxis-1].real, bold_x[:, zaxis-1].real)
 
         plt.show()
