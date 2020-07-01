@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt
            
             
             
-class LagrangainDesc():
+class LagrangianDesc():
     def __init__(self, Func,t_0, p, Tau):
         self.t_0 = t_0
         self.p = p
@@ -81,13 +81,13 @@ class LagrangainDesc():
 
 
 def CalcMInd(x_0, t_0, p, Tau, dt, w):
-    LD = LagrangainDesc(TheFunction, t_0, p, Tau)
+    LD = LagrangianDesc(TheFunction, t_0, p, Tau)
     LD.setdt(dt)
     LD.width = w
     return LD.CalcM(x_0)
 
 
-class LagrangainDescPlot():
+class LagrangianDescPlot():
     def __init__(self,t_0, p, Tau, parallel = False, cores = -1, save = True):
         self.t_0 = t_0
         self.p = p
@@ -139,6 +139,6 @@ class LagrangainDescPlot():
         plt.title(r" Lagrangian Descriptor Plot")
         plt.xlabel(r"Description of $x$ coordinate (units)")
         plt.ylabel(r"Description of $y$ coordinate (units)")
-        plt.show()    
         if self.save:
             plt.savefig("My_PNG")
+        plt.show()    
