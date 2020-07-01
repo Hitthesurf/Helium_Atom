@@ -1,8 +1,18 @@
 import numpy as np
 import matplotlib as mpl
 import matplotlib.pyplot as plt
+import multiprocessing
+from functools import partial
 from decimal import Decimal
 from mpl_toolkits.mplot3d import Axes3D
+import multiprocessing as mp
+
+def is_in(data):
+    #put the intersection you want here
+    if data[2] >= 0: #p_1>=0
+        if (-0.01<data[0])and(data[0]<0.01):#q_1 = 0
+            return True
+    return False
 
 
 def examplefunc1(t, x1, x2):
@@ -191,7 +201,14 @@ class ODEAnalysis():
 
     def RungeKutta(self, T, t_0, x_0):
         # As Start at zero so need an extra addition of dt
-        N = int(T//self.dt) + 1
+        N = int(abs((T-t_0)//self.dt)) + 1
+        if T > t_0:
+            self.dt = abs(self.dt)
+        
+        if T < t_0:
+            self.dt = -abs(self.dt)
+        
+        
         t = np.zeros(N+1)
         num_x = len(x_0)
 
@@ -225,6 +242,8 @@ class ODEAnalysis():
         t[N] = t[N-1] + last_dt
 
         #print("Time: " + str(t[-5:]))
+        
+        self.dt = abs(self.dt)
 
         return t, x
 
@@ -373,3 +392,129 @@ class ODEAnalysis():
             ax.plot(bold_x[:, xaxis-1].real, bold_x[:, yaxis-1].real, bold_x[:, zaxis-1].real)
 
         plt.show()
+    
+    def IntegrateTrajectory(self, T, point, epsilon = 0.1):
+        eigenvals, eigenvectors = self.CalcEigen(2*np.pi, point)
+        
+        stable_intersection = []
+        unstable_intersection = []
+    
+        for index in range(0, len(eigenvals)):
+            eigenval = eigenvals[index]
+            eigenvector = eigenvectors[:, index]
+
+
+            if abs(eigenval) <= 0.95:
+                #Stable
+                #print("Stable: " + str(eigenvector))
+
+                #Same as unstable but going back in time
+                self.dt = -abs(self.dt)
+
+                #Other direction
+                new_x_0 = point + 0.01*eigenvector
+                ts1, xs1 = self.RungeKutta(-10*2*np.pi, 0, new_x_0)
+
+                #Other direction
+                new_x_0 = point - 0.01*eigenvector
+                ts2, xs2 = self.RungeKutta(-10*2*np.pi, 0, new_x_0)
+
+                self.dt = abs(self.dt)
+
+                xs = [*xs1, *xs2]
+
+
+                for data in xs:
+                    if is_in(data):
+                        stable_intersection.append(data)
+
+
+
+
+            if abs(eigenval) >= 1.05:
+                #Unstable
+                #print("Unstable: " + str(eigenvector))
+
+                #One direction
+                new_x_0 = point + 0.01*eigenvector
+                tu1, xu1 = self.RungeKutta(10*2*np.pi, 0, new_x_0)
+
+                #Other direction
+                new_x_0 = point - 0.01*eigenvector
+                tu2, xu2 = self.RungeKutta(10*2*np.pi, 0, new_x_0)
+
+                xu = [*xu1, *xu2]
+
+                for data in xu:
+                    if is_in(data):
+                        unstable_intersection.append(data)
+
+        return stable_intersection, unstable_intersection
+                     
+    def Intersection(self, T, x_0, points_needed = 10, parallel = False):
+        #Intersection with the is_in function
+        t, x = self.RungeKutta(T, 0, x_0)
+        points_to_analyse = [x[int((i/points_needed)*len(x))] for i in range(points_needed)]
+
+    
+        stable = []
+        unstable = []
+        
+        
+        if parallel: # Doesn't work in Juypter Notebook
+            pool = multiprocessing.Pool(processes = multiprocessing.cpu_count())
+            IntegrateTrajectory_partial = partial(self.IntegrateTrajectory, T=T)
+            result_list = pool.map(IntegrateTrajectory_partial, points_to_analyse)
+            print(result_list)
+            
+
+        if parallel is False:           
+            for index in range(points_needed):
+                temp_stable, temp_unstable = self.IntegrateTrajectory(T, points_to_analyse[index])
+                stable = [*stable, *temp_stable]
+                unstable = [*unstable, *temp_unstable]
+        
+        
+        if len(stable) > 0:            
+            plt.style.use('dark_background')
+            cm = plt.cm.get_cmap('winter_r')
+            x = np.array(stable)[:,1]
+            y = np.array(stable)[:,3]
+            z = np.array(stable)[:,2]
+
+            sc = plt.scatter(x, y, c=z, cmap=cm)
+            plt.colorbar(sc, label='p_1')
+            plt.title('Stable Intersection')
+            plt.xlabel("$q_2$")
+            plt.ylabel("$p_2$")
+            plt.show()
+            
+        if len(unstable) > 0:            
+            plt.style.use('dark_background')
+            cm = plt.cm.get_cmap('winter_r')
+            x = np.array(unstable)[:,1]
+            y = np.array(unstable)[:,3]
+            z = np.array(unstable)[:,2]
+
+            sc = plt.scatter(x, y, c=z, cmap=cm)
+            plt.colorbar(sc, label='p_1')
+            plt.title('Unstable Intersection')
+            plt.xlabel("$q_2$")
+            plt.ylabel("$p_2$")
+            plt.show()
+            
+        plt.style.use('default')
+        
+        
+        if len(unstable)==0:
+            print("No Unstable Intersection")
+        
+        if len(stable)==0:
+            print("No Stable Intersection")        
+            
+ 
+    
+    
+
+    
+        
