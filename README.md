@@ -42,3 +42,8 @@ There is also a simple 2-body system which is periodic.
 
 ![Alt Text](https://raw.githubusercontent.com/Hitthesurf/Helium_Atom/master/Simulations/GIF_Sim/BigLittleOrbit.gif?raw=true)
 
+
+### 3D Helium Simulation
+Here are two electrons orbiting a nucleus. This is done by using ipyvolume.
+
+![Alt Text](https://raw.githubusercontent.com/Hitthesurf/Helium_Atom/master/Simulations/GIF_Sim/3D_Helium.gif?raw=true)
