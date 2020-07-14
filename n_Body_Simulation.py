@@ -2,7 +2,7 @@ import numpy as np
 import time
 
 from ODEAnalysis import *
-from n_Body_Simulation import *
+# from n_body_equations import *
 
 import matplotlib as mpl
 from matplotlib import pyplot as plt
@@ -11,143 +11,83 @@ from matplotlib import animation
 import ipyvolume as ipv
 import ipywidgets as widgets
 
-def zeta(i,j):
+
+def cot(x):
+    return 1/np.tan(x)
+
+
+def zeta(i, j):
     if i > j:
         return True
     elif i <= j:
         return False
-    
+
+
 def combine(step, *cords):
     n_cords = np.array(cords)
     new_c = []
-    for i in range(0,len(cords[0]),step):
-        Temp = n_cords[:,i] 
+    for i in range(0, len(cords[0]), step):
+        Temp = n_cords[:, i]
         new_c.append(Temp)
     return np.array(new_c)
 
 
-class n_body():
-    def __init__(self, mass, charge = [0], G=1, K= 1, dim=2, radius = [0.2]):
-        self.mass = mass
-        self.charge = charge
-        self.G = G
-        self.dim = dim
-        self.K = K
-        self.colisions_on = True
-        
-        if radius == [0.2]:
-            self.radius = radius*len(self.mass)
-        else:
-            self.radius = radius
-        
-        
-    def grav_Ham(self, q,p,t=0):
-        n = len(self.mass)  # Number of particles
-        dim = self.dim  # The phase space it is in
-        m = self.mass
-        G = self.G
-        
-        H = 0
-        
-        #Kenetic energy
-        for i in range(0,n):
-            H += (np.linalg.norm(p[i])**2)/(2*m[i])       
-            
-            #PE
-            for j in range(0,n):
-                if zeta(i,j):
-                    H -= (G*m[i]*m[j])/(np.linalg.norm(q[i]-q[j]))
-            
-        return H
+class c_plot():
+    def __init__(self, ax, size=2, text="", colour_axis=False, is_point=False, cmap=0, norm=0, max_dots=300):
+        self.ax = ax
+        self.x = []
+        self.y = []
+        self.z = []
+        self.size = size
+        self.colour_axis = colour_axis
+        self.text = text
+        self.cmap = cmap
+        self.norm = norm
+        self.max_dots = max_dots
 
-    def grav_n_body(self, t, *qp):
-        n = len(self.mass)  # Number of particles
-        dim = self.dim  # The phase space it is in
-        m = self.mass
-        G = self.G
-        q = np.array(qp[:n])
-        p = np.array(qp[n:])
-        dot_q = np.zeros([n, dim])
-        dot_p = np.zeros([n, dim])
+        if self.colour_axis:
+            self.me = self.ax.scatter([], [], c=[], s=self.size**2)
+            self.init_data = self.init_data_col
+            if is_point:
+                self.set_data = self.set_data_col_point
+            if is_point is False:
+                self.set_data = self.set_data_col_track
 
-        for i in range(0, n):
-            dot_q[i] = p[i]/m[i]
-            # sum
-            for k in range(0, n):
-                if i != k:
-                    dot_p[i] += -(G*m[i]*m[k])*(q[i]-q[k]) / \
-                        (np.linalg.norm(q[i]-q[k])**3)
+        if self.colour_axis is False:
+            if is_point:
+                self.me, = self.ax.plot([], [], 'bo', ms=self.size)
+            if is_point is False:
+                self.me, = self.ax.plot([], [], lw=self.size)
 
-        return np.array([*dot_q, *dot_p])
-    
-    def charge_Ham(self, q,p,t=0):
-        n = len(self.mass)  # Number of particles
-        dim = self.dim  # The phase space it is in
-        m = self.mass
-        K = self.K
-        c = self.charge
-        
-        H = 0
-        
-        #Kenetic energy
-        for i in range(0,n):
-            H += (np.linalg.norm(p[i])**2)/(2*m[i])       
-            
-            #PE
-            for j in range(0,n):
-                if zeta(i,j):
-                    H += (K*c[i]*c[j])/(np.linalg.norm(q[i]-q[j]))
-            
-        return H
-    
-    def charge_n_body(self, t, *qp):
-        n = len(self.mass)  # Number of particles
-        dim = self.dim  # The phase space it is in
-        m = self.mass
-        K = self.K
-        c = self.charge
-        r = self.radius
-        
-        q = np.array(qp[:n])
-        p = np.array(qp[n:])
-        dot_q = np.zeros([n, dim])
-        dot_p = np.zeros([n, dim])
-        
-                #Check for colisions
-        '''
-        if self.colisions_on:
-            for i in range(0,n):
-                for k in range(0, n):
-                    if i != k:
-                        dis_ik = np.linalg.norm(q[i]-q[k])
-                        
-                        if dis_ik <= (r[i]+r[k]):
-                            #Colision
-                            #Make k stationary
-                            #v = dot_q[i]-dot_q[k]
-                            #mag_v = np.linalg.norm(v)
-                            
-                            p[i] = -p[i]'''
+            self.init_data = self.init_data_no_col
+            self.set_data = self.set_data_no_col
 
-        for i in range(0, n):
-            dot_q[i] = p[i]/m[i]
-            # sum
-            for k in range(0, n):
-                if i != k:
-                    dis_ik = np.linalg.norm(q[i]-q[k])
-                    
-                    dot_p[i] += (K*c[i]*c[k])*(q[i]-q[k]) / \
-                        (dis_ik**3)
+    def init_data_col(self):
+        self.me.set_offsets([[]])
+        self.me.set_color(self.cmap([]))
 
+    def set_data_col_point(self, x, y, z):
+        data = combine(1, x, y)
+        self.me.set_offsets(data)
+        self.me.set_color(self.cmap(self.norm(z)))
 
+    def set_data_col_track(self, x, y, z):
 
-        return np.array([*dot_q, *dot_p])
-    
-    
+        step = int(np.ceil(len(x)/self.max_dots))
+
+        data = combine(step, x, y)
+        self.me.set_offsets(data)
+        self.me.set_color(self.cmap(self.norm(z)))
+
+    def init_data_no_col(self):
+        self.me.set_data([], [])
+
+    def set_data_no_col(self, x, y, z):
+        self.me.set_data(x, y)
 
 
 class Particle():
-    def __init__(self, mass, q_initial, p_initial, Track_Length=500, Size_of_Particle=15, charge = 0,Color="Blue"):
+    def __init__(self, mass, q_initial, p_initial, Track_Length=500, Size_of_Particle=15, charge=0, Color="Blue"):
         self.m = mass  # float
         self.q_0 = q_initial  # array
         self.p_0 = p_initial  # array
@@ -156,32 +96,49 @@ class Particle():
         self.color = Color  # string
         self.q = []
         self.p = []
+
+        self.x = []
+        self.y = []
+        self.z = []
+
         self.track_line = None  # to be a line
         self.point = None  # to be a point
-        self.charge = charge #Only needed if using charged n_body problem
+        self.charge = charge  # Only needed if using charged n_body problem
+
 
 class Simulation():
-    def __init__(self, Func_Class=n_body, Speed=10, time_step=0.01, Sim_Name="Simulation_Name", Sim_Of = 'Grav', dim = 2):
+    def __init__(self, Func_Class, Speed=10, time_step=0.01, Sim_Name="Simulation_Name", Calc_Ham=False):
         self.Class = Func_Class
         self.speed = Speed
         self.time_step = time_step
         self.Parts = []
         self.t = []
         self.sim_name = Sim_Name
-        self.sim_of = Sim_Of #Grav or Charge
-        self.dim = dim
+        self.Hamiltonian = []
 
-    def AddParts(self, mass, q_initial, p_initial, Track_Length=[500], Size_of_Particle=[15], charge = [0], Color="Blue"):
-        
+        self.calc_ham = Calc_Ham
+
+    def AddParts(self, mass, q_initial, p_initial, Track_Length=[500], Size_of_Particle=[15], charge=[0], Color="Blue"):
+
         if charge == [0]:
             charge = charge*len(mass)
-                
+
         for i in range(0, len(mass)):
             self.Parts.append(Particle(
                 mass[i], q_initial[i], p_initial[i], Track_Length[i], Size_of_Particle[i], charge[i], Color))
 
-    def CalcPath(self, T):  # Add save data
-        ODE = ODEAnalysis(self.Class, self.time_step)
+    def CalcHamiltonian(self, show=True):
+        my_class = self.Class(Parts=self.Parts)
+        calc_energy = my_class.calc_ham
+        elements = len(self.t)
+        H = []
+        for pos in range(0, elements):
+            H.append(calc_energy(self.Parts, pos, self.t[pos]))
+        self.Hamiltonian = np.array(H)
+        if show:
+            return H[0]
+
+    def CalcPath(self, T):
 
         # Get initial conditions and mass
         q_0 = []
@@ -195,47 +152,48 @@ class Simulation():
             mass.append(Part.m)
             charge.append(Part.charge)
 
-        my_class = n_body(mass, charge, dim = self.dim)
-        #Decide which function to use
-        ODE = None
-        if self.sim_of == 'Grav':
-            ODE = ODEAnalysis(my_class.grav_n_body)
-        elif self.sim_of == 'Charge':
-            ODE = ODEAnalysis(my_class.charge_n_body)
-        else:
-            print("Not a valid sim")
+        my_class = self.Class(Parts=self.Parts)
 
+        # Decide which function to use
+        ODE = ODEAnalysis(my_class.n_body_system, StepOfTime=self.time_step)
 
         self.t, x = ODE.RungeKutta(T, 0, [*q_0, *p_0])
 
         # Save info to parts
-
         for Part_Index in range(len(self.Parts)):
             self.Parts[Part_Index].q = x[:, Part_Index]
             self.Parts[Part_Index].p = x[:, len(self.Parts) + Part_Index]
 
+        # Convert Back to cart cords
+        new_q = my_class.convert_cart(self.Parts)
+        has_z = False
+        if len(new_q[0][0]) == 3:
+            has_z = True
+        for Part_Index in range(len(self.Parts)):
+            self.Parts[Part_Index].x = new_q[Part_Index][:, 0]
+            self.Parts[Part_Index].y = new_q[Part_Index][:, 1]
+            if has_z:
+                self.Parts[Part_Index].z = new_q[Part_Index][:, 2]
+            else:
+                self.Parts[Part_Index].z = np.array(
+                    [0.0]*len(new_q[Part_Index][:, 0]))
+
+        # Calculate Hamiltonian
+        if self.calc_ham:
+            self.CalcHamiltonian(show=False)
+
     # Only when dim is 2D
     def ShowStatic(self):
-        plt.figure(figsize=(9, 8))
+        plt.figure(figsize=(7, 7))
+        plt.style.use('dark_background')
 
         for Part in self.Parts:
-            plt.plot(Part.q[:, 0], Part.q[:, 1])
+            plt.plot(Part.x, Part.y)
         plt.show()
 
     # Only when dim is 2D
 
-    def my_init(self):
-        line.set_data([], [])
-        return line,
-
-    def my_animate(self, i):
-        # i represents the frame number
-        x = np.linspace(0, 2*np.pi, 50)
-        y = np.sin(x-i*0.0628)
-        line.set_data(x, y)
-        return line,
-
-    def ShowAnimation(self, size=15, follow_mass=-1, save=False):
+    def ShowAnimation(self, size=15, follow_mass=-1, save=False, link_data=[], z_axis=[-15, 15], with_color=False, max_dots=150):
         '''
 
         follow_mass
@@ -244,8 +202,31 @@ class Simulation():
         -1 : The camera follows the center of mass of the system
         0,1,2, n-1 : The camera follows that particle
 
+
+        link_data
+        links particles together with a line.
+        0 means origin
+        i means particle i
+
+        examples
+        [[0,0]] line drawn between origin and orign(thus no line)
+
+        [[0,1],[1,2]]
+        a line drawn from origin to particle 1 
+        and a line drawn from 1 to 2
+
+        z_axis
+        the colour range of the z axis
+
+        with_color
+        uses colour as a 3rd axis
+
+        max_dots
+        since the track length is made out of lots of dots to get different colours
+        The number of dots can't exceed this, to help combat slow animaitons,
+        doesn't matter if saving animation.
         '''
-        
+
         if follow_mass == -2:
             # Follow largest mass
             max_val = 0
@@ -258,125 +239,194 @@ class Simulation():
 
             follow_mass = max_pos
 
-        num_of_frames = (len(self.Parts[0].q[:, 0])-1)//self.speed
+        num_of_frames = (len(self.Parts[0].x)-1)//self.speed
         plt.style.use('dark_background')
-        fig = plt.figure()
-        ax = plt.axes(xlim=(-size, size), ylim=(-size, size))
+        # The limits on the colour bar, Z limits
+        my_norm = mpl.colors.Normalize(vmin=z_axis[0], vmax=z_axis[1])
+
+        if with_color:
+            fig, [ax, cax] = plt.subplots(
+                1, 2, gridspec_kw={"width_ratios": [50, 1]})
+        else:
+            fig, ax = plt.subplots(1, 1)
+
+        if with_color:
+            cmap = mpl.cm.winter  # Colour you want to use as scale
+
+            cb1 = mpl.colorbar.ColorbarBase(
+                cax, cmap=cmap, norm=my_norm, orientation='vertical')
+            # The actual color bar
+        else:
+            cmap = 0
+
+        ax.set_xlim(-size, size)
+        ax.set_ylim(-size, size)
+
+        # Get total track length
+        total_track_length = 0
+        for Part in self.Parts:
+            total_track_length += Part.tl
 
         for Part in self.Parts:
             # Main Body
-            Part.point, = ax.plot([], [], 'bo', ms=Part.size)
+            Part.point = c_plot(
+                ax=ax, size=Part.size, colour_axis=with_color, is_point=True, cmap=cmap, norm=my_norm)
 
             # Track
-            Part.track_line, = ax.plot([], [], lw=Part.size/5)
+            dots_in_track = int((Part.tl/total_track_length)*max_dots)
+            Part.track_line = c_plot(ax=ax, size=Part.size/5, colour_axis=with_color,
+                                     is_point=False, cmap=cmap, norm=my_norm, max_dots=dots_in_track)
 
-        #self.Parts[0].point, = ax.plot([], [], 'bo', ms=30)
-        #self.Parts[1].point, = ax.plot([], [], 'bo', ms=15)
+        my_links = []
+        for link_pos in link_data:
+            temp_link, = ax.plot([], [], lw=3)
+            my_links.append(temp_link)
 
         time_text = ax.text(0.02, 0.95, '', transform=ax.transAxes)
+
+        ham_text = None
+        if self.calc_ham:
+            ham_text = ax.text(0.02, 0.90, '', transform=ax.transAxes)
 
         def my_init():
 
             Points = []
             Tracks = []
             time_text.set_text('')
+            if self.calc_ham:
+                ham_text.set_text('')
+
+            links_lines = []
 
             for Part in self.Parts:
                 # Main Body
-                Part.point.set_data([], [])
-                Points.append(Part.point)
+                Part.point.init_data()
+                Points.append(Part.point.me)
 
                 # Track
-                Part.track_line.set_data([], [])
-                Tracks.append(Part.track_line)
+                Part.track_line.init_data()
+                Tracks.append(Part.track_line.me)
 
-            return Points, Tracks,
+            # Set up links/bonds
+            for my_link in my_links:
+                my_link.set_data([], [])
+                links_lines.append(my_link)
+
+            return Points, Tracks, links_lines
 
         def my_animate(i):
             # i represents the frame number
             pos = i*self.speed
-            time_text.set_text('time = '+str(self.t[pos]))
+            time_text.set_text('Time = '+str(self.t[pos]))
+
+            if self.calc_ham:
+                ham_text.set_text('Hamiltonian = ' +
+                                  str(self.Hamiltonian[pos]))
 
             Points = []
             Tracks = []
 
+            links_lines = []
+            link_line = None
+
             for Part in self.Parts:
                 # Main Body
-                Part.point.set_data(Part.q[:, 0][pos], Part.q[:, 1][pos])
-                Points.append(Part.point)
+                Part.point.set_data(
+                    Part.x[pos:pos+1], Part.y[pos:pos+1], Part.z[pos:pos+1])
+                Points.append(Part.point.me)
 
                 # Track
                 start_pos = max(0, pos-Part.tl)
                 Part.track_line.set_data(
-                    Part.q[:, 0][start_pos:pos], Part.q[:, 1][start_pos:pos])
-                Tracks.append(Part.track_line)
+                    Part.x[start_pos:pos], Part.y[start_pos:pos], Part.z[start_pos:pos])
+                Tracks.append(Part.track_line.me)
+
+            # Draw links
+            for link_index in range(len(link_data)):
+                my_link = my_links[link_index]
+                link_pos = link_data[link_index]
+                start_pos = None
+                end_pos = None
+                elements = len(self.Parts[0].q)
+                #link_line = None
+
+                if link_pos[0] == 0:
+                    # means origin
+                    start_pos = np.zeros([elements, 2])
+
+                else:
+                    start_part = self.Parts[link_pos[0]-1]
+                    start_pos = combine(1, start_part.x, start_part.y)
+
+                if link_pos[1] == 0:
+                    # means origin
+                    end_pos = np.zeros([elements, 2])
+
+                else:
+                    end_part = self.Parts[link_pos[1]-1]
+                    end_pos = combine(1, end_part.x, end_part.y)
+
+                my_link.set_data([start_pos[pos][0], end_pos[pos][0]], [
+                                 start_pos[pos][1], end_pos[pos][1]])
+                links_lines.append(link_line)
 
             # Set center of camera
-
             if follow_mass >= 0:
                 # Follow specific mass
-                x_mass = self.Parts[follow_mass].q[:, 0][pos]
-                y_mass = self.Parts[follow_mass].q[:, 1][pos]
+                x_mass = self.Parts[follow_mass].x[pos]
+                y_mass = self.Parts[follow_mass].y[pos]
                 ax.set_xlim(x_mass-size, x_mass+size)
                 ax.set_ylim(y_mass-size, y_mass+size)
-                
+
             if follow_mass == -1:
-                #Follows centre of mass of system
+                # Follows centre of mass of system
                 total_mass = 0
                 total_x_mass = 0
                 total_y_mass = 0
                 for Part in self.Parts:
                     total_mass += Part.m
-                    total_x_mass += Part.m*Part.q[:, 0][pos]
-                    total_y_mass += Part.m*Part.q[:, 1][pos]
+                    total_x_mass += Part.m*Part.x[pos]
+                    total_y_mass += Part.m*Part.y[pos]
                 x_cen = total_x_mass/total_mass
                 y_cen = total_y_mass/total_mass
                 ax.set_xlim(x_cen-size, x_cen+size)
                 ax.set_ylim(y_cen-size, y_cen+size)
 
-            return Points, Tracks,
+            return Points, Tracks, links_lines
 
         self.anim = animation.FuncAnimation(fig, my_animate, init_func=my_init,
-                                            frames=num_of_frames, interval=20, blit=True)
+                                            frames=num_of_frames, interval=40, blit=True)
 
         if save:
             Writer = animation.writers['ffmpeg']
-            writer = Writer(fps=50, metadata=dict(
+            writer = Writer(fps=25, metadata=dict(
                 artist='Mark Pearson'), bitrate=1800)
             self.anim.save(self.sim_name + ".mp4", writer=writer, dpi=300)
-            
-    def ShowAnimation3D(self, size = 15):
+
+    def ShowAnimation3D(self, size=15):
         ipv.figure()
-        ipv.style.use("dark")    
-        
-            
+        ipv.style.use("dark")
+
         x_Part = []
         y_Part = []
         z_Part = []
-            
+
         for Part in self.Parts:
-            temp_x = Part.q[:,0]
-            temp_y = Part.q[:,1]
-                
+            temp_x = Part.x
+            temp_y = Part.y
+            temp_z = Part.z
+
             x_Part.append(temp_x)
             y_Part.append(temp_y)
+            z_Part.append(temp_z)
 
-            if self.dim == 3:
-                temp_z = Part.q[:,2]
-                z_Part.append(temp_z)
-            elif self.dim == 2:
-                temp_z = [0.0]
-                z_Part.append(np.array(temp_z*len(temp_x)))
-                
         x = combine(self.speed*5, *x_Part)
         y = combine(self.speed*5, *y_Part)
         z = combine(self.speed*5, *z_Part)
-            
-        u = ipv.scatter(x,y,z, marker = "sphere", size = 10, color = "green")
-            
-        ipv.animation_control(u, interval = 100)
-            
-        ipv.xyzlim(-size,size)
+
+        u = ipv.scatter(x, y, z, marker="sphere", size=10, color="green")
+
+        ipv.animation_control(u, interval=100)
+
+        ipv.xyzlim(-size, size)
         ipv.show()
-            
-            
