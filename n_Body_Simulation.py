@@ -24,6 +24,8 @@ def zeta(i, j):
 
 
 def combine(step, *cords):
+    if step == 0:
+        step = 1
     n_cords = np.array(cords)
     new_c = []
     for i in range(0, len(cords[0]), step):
@@ -77,7 +79,7 @@ class c_plot():
 
         data = combine(step, x, y)
         self.me.set_offsets(data)
-        self.me.set_color(self.cmap(self.norm(z)))
+        self.me.set_color(self.cmap(self.norm(combine(step,z).reshape(1,-1)[0])))
 
     def init_data_no_col(self):
         self.me.set_data([], [])
@@ -182,16 +184,26 @@ class Simulation():
         if self.calc_ham:
             self.CalcHamiltonian(show=False)
 
-    # Only when dim is 2D
-    def ShowStatic(self):
-        plt.figure(figsize=(7, 7))
-        plt.style.use('dark_background')
 
+    def ShowStatic(self, with_color = False, z_axis = [-15,15], save = False):   
+        plt.style.use('dark_background')
+        plt.figure(figsize=(7,7))
         for Part in self.Parts:
-            plt.plot(Part.x, Part.y)
+            if with_color:
+                plt.scatter(Part.x, Part.y, c = Part.z, cmap = mpl.cm.winter,
+                            vmin = z_axis[0], vmax = z_axis[1], s =12)
+                plt.colorbar()
+                
+                if save:
+                    plt.savefig("Static_" + self.sim_name + "_with_color.png")
+            else:
+                plt.plot(Part.x, Part.y)
+                if save:
+                    plt.savefig("Static_" + self.sim_name + ".png")
+                
         plt.show()
 
-    # Only when dim is 2D
+
 
     def ShowAnimation(self, size=15, follow_mass=-1, save=False, link_data=[], z_axis=[-15, 15], with_color=False, max_dots=150):
         '''

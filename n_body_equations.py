@@ -7,6 +7,185 @@ Created on Tue Jul 14 14:52:50 2020
 from n_Body_Simulation import combine, zeta, cot
 import numpy as np
 
+class Two_Electrons_Near_McGee():
+    def __init__(self, Parts, lam = np.pi/2, H = 0):
+        # In this example the electrons have mass 1
+        # The nucleus has a large mass(inf)
+        self.lam = lam
+        self.H = self.H
+        
+    def W(self, s):
+        pass
+    
+    
+    def n_body_system(self, t, *qp):
+        dim = 2 #Number of parameters each particle has
+        n=1 # Number of particles, as they have been put into one        
+
+        q = np.array(qp[:n])[0]
+        p = np.array(qp[n:])[0]
+        dot_q = np.zeros([n, dim])
+        dot_p = np.zeros([n, dim])   
+        
+        r = q[0]
+        s = q[1]
+        
+        v = p[0]
+        w = p[1]
+        
+class Two_Electron_Non_Singular():
+    def __init__(self, Parts, Z = 2, E = 0):
+        # In this example the electrons have mass 1
+        # The nucleus has a large mass(inf)
+        self.Z = Z
+        self.E = E
+        #self.convert_cart = self.convert_cart_WR
+
+    def n_body_system(self, t, *QP):
+        dim = 4
+        n = 1
+        
+        Q = np.array(QP[:n])[0]
+        P = np.array(QP[n:])[0]
+        dot_Q = np.zeros([n, dim])
+        dot_P = np.zeros([n, dim])
+        
+        Q1 = Q[0]
+        Q2 = Q[1]
+        Q3 = Q[2]
+        Q4 = Q[3]
+        
+        P1 = P[0]
+        P2 = P[1]
+        P3 = P[2]
+        P4 = P[3]     
+        
+        
+
+class Two_Electrons_Near_TCP():
+    def __init__(self, Parts, Z = 2, is_eze = True):
+        # In this example the electrons have mass 1
+        # The nucleus has a large mass(inf)
+        self.Z = Z
+        if is_eze:
+            self.convert_cart = self.convert_cart_eze
+        if is_eze is False:
+            self.convert_cart = self.convert_cart_WR
+    
+    def V(self, alpha, theta):
+        a = alpha
+        O = theta
+        Z = self.Z
+        my_V = -Z/(np.cos(a)) - Z/(np.sin(a)) + 1/((1-np.sin(2*a)*np.cos(O))**0.5)
+        return my_V
+    
+    def par_alpha_V(self, alpha, theta):
+        a = alpha
+        O = theta
+        Z = self.Z
+        
+        my_par_alpha_V = -Z*np.sin(a)/((np.cos(a))**2)
+        my_par_alpha_V += Z*np.cos(a)/(np.sin(a)**2)
+        my_par_alpha_V += (np.cos(2*a)*np.cos(O))/((1-np.sin(2*a)*np.cos(O))**1.5)
+        
+        return my_par_alpha_V
+    
+    def par_theta_V(self, alpha, theta):
+        a = alpha
+        O = theta
+        Z = self.Z
+        
+        my_par_theta_V = -(np.sin(O)*np.sin(2*a))/(2*((1-np.sin(2*a)*np.cos(O))**1.5))
+        return my_par_theta_V
+    
+    def n_body_system(self, t, *qp):        
+        dim = 3 #Number of parameters each particle has
+        n=1 # Number of particles, as they have been put into one
+        
+        q = np.array(qp[:n])[0]
+        p = np.array(qp[n:])[0]
+        dot_q = np.zeros([n, dim])
+        dot_p = np.zeros([n, dim])
+        
+        a = q[0]
+        O = q[1]
+        R = q[2]
+        
+        pa = p[0]
+        pO = p[1]
+        pR = p[2]
+        
+        
+        H_bar = self.calc_H_bar(a, O, pa, pO, pR)
+        
+        # dot alpha
+        dot_q[0][0] = pa 
+
+        # dot theta
+        dot_q[0][1] = pO/(np.cos(a)**2*np.sin(a)**2)
+        
+        # dot R or dot bar H
+        dot_q[0][2] = pR*H_bar
+
+        # dot p_alpha
+        temp = (pO**2)*((np.cos(a)**2 - np.sin(a)**2)/(np.sin(a)**3*np.cos(a)**3))
+        dot_p[0][0] = -(1/2)*pR*pa + temp - self.par_alpha_V(a, O)
+        
+        # dot p_theta
+        dot_p[0][1] = -(1/2)*pR*pO - self.par_theta_V(a, O)
+        
+        # dot p_R o
+        dot_p[0][2] = (1/2)*(pa**2+(pO**2)/(np.cos(a)**2*np.sin(a)**2)) + H_bar
+        
+        
+        
+        return np.array([*dot_q, *dot_p])    
+    
+    def calc_H_bar(self, alpha, theta, dot_alpha, dot_theta, dot_R):
+        a = alpha
+        O = theta
+        
+        pa = dot_alpha
+        pO = dot_theta
+        pR = dot_R
+        
+        H_bar = (1/2)*(pR**2+pa**2+(pO**2)/(np.cos(a)**2*np.sin(a)**2)) + self.V(a,O)
+        return H_bar
+    
+    def convert_cart_eze(self, Parts):
+        q = Parts[0].q
+        p = Parts[0].p
+        
+
+        a = q[:, 0]
+        pa = p[:, 0]
+        pR = p[:, 2]
+        
+        new_x = pR
+        new_y = a
+        new_z = pa
+        
+        new_q = combine(1, new_x, new_y, new_z)
+        
+        return np.array([new_q])
+    
+    def convert_cart_WR(self, Parts):
+        q = Parts[0].q
+        p = Parts[0].p
+        
+
+        O = q[:, 1]
+        pO = p[:, 1]
+        pR = p[:, 2]
+        
+        new_x = pR
+        new_y = O
+        new_z = pO
+        
+        new_q = combine(1, new_x, new_y, new_z)
+        
+        return np.array([new_q])
+
 class Motion_In_Cone():
     def __init__(self, Parts, g=9.81, alpha = np.pi/4):
         self.g = g
