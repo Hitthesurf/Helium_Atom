@@ -34,16 +34,18 @@ class Two_Electrons_Near_McGee():
         w = p[1]
         
 class Two_Electron_Non_Singular():
-    def __init__(self, Parts, Z = 2, E = 0):
+    def __init__(self, Parts, Z = 2, E = -1):
         # In this example the electrons have mass 1
         # The nucleus has a large mass(inf)
         self.Z = Z
         self.E = E
         #self.convert_cart = self.convert_cart_WR
 
-    def n_body_system(self, t, *QP):
+    def n_body_system_old(self, t, *QP):
         dim = 4
         n = 1
+        E = self.E
+        Z = self.Z
         
         Q = np.array(QP[:n])[0]
         P = np.array(QP[n:])[0]
@@ -58,8 +60,254 @@ class Two_Electron_Non_Singular():
         P1 = P[0]
         P2 = P[1]
         P3 = P[2]
-        P4 = P[3]     
+        P4 = P[3]
         
+        r1 = Q1**2 + Q2**2
+        r2 = Q3**2 + Q4**2
+        
+        r12 = (r1**2 + r2**2 - 2*(Q1*Q3 + Q2*Q4)**2 + 2*(Q1*Q4-Q2*Q3)**2)**0.5
+        
+        R = (r1**2 + r2**2)**0.5
+        
+        Q1_bar = Q1/(R**0.5)
+        Q2_bar = Q2/(R**0.5)
+        Q3_bar = Q3/(R**0.5)
+        Q4_bar = Q4/(R**0.5)
+        
+        r1_bar = Q1_bar**2 + Q2_bar**2
+        r2_bar = Q3_bar**2 + Q4_bar**2
+        
+        pr_bar = 1/2 * (Q1_bar*P1 + Q2_bar*P2 + Q3_bar*P3 + Q4_bar*P4)
+        
+        temp1 = 1/4 * Q1 * (P3**2 + P4**2) - 2*Z*Q1 + 2*Q1*r2*(-E + 1/r12)
+        temp2 = 2*((r1*r2)/(r12**3))*(r1*Q1 + (Q4**2-Q3**2)*Q1 - 2*Q2*Q3*Q4)
+        dot_P[0][0] = -(temp1 - temp2)
+        
+        temp1 = 1/4 * Q2 * (P3**2 + P4**2) - 2*Z*Q2 + 2*Q2*r2*(-E + 1/r12)
+        temp2 = 2*((r1*r2)/(r12**3))*(r1*Q2 - (Q4**2-Q3**2)*Q2 - 2*Q1*Q3*Q4)        
+        dot_P[0][1] = -(temp1 - temp2)
+        
+        temp1 = 1/4 * Q3*(P1**2 + P2**2) - 2*Z*Q3 + 2*Q3*r1*(-E + 1/r12)
+        temp2 = 2*((r1*r2)/(r12**3))*(r2*Q3 + (Q2**2 - Q1**2)*Q3 - 2*Q1*Q2*Q4)
+        dot_P[0][2] = -(temp1 - temp2)    
+        
+        temp1 = 1/4 * Q4*(P1**2 + P2**2) - 2*Z*Q4 + 2*Q4*r1*(-E + 1/r12)
+        temp2 = 2*((r1*r2)/(r12**3))*(r2*Q4 - (Q2**2 - Q1**2)*Q4 - 2*Q1*Q2*Q3)
+        dot_P[0][3] = -(temp1 - temp2)         
+        
+        
+        dot_Q[0][0] = (1/4)*r2*P1
+        dot_Q[0][1] = (1/4)*r2*P2
+        dot_Q[0][2] = (1/4)*r1*P3
+        dot_Q[0][3] = (1/4)*r1*P4
+
+        '''
+        dot_Q[0][0] = ((1/4)*r2_bar*P1 - (1/2)*Q1_bar*r1_bar*r2_bar*pr_bar) * R
+        dot_Q[0][1] = ((1/4)*r2_bar*P2 - (1/2)*Q2_bar*r1_bar*r2_bar*pr_bar) * R
+        dot_Q[0][2] = ((1/4)*r1_bar*P3 - (1/2)*Q3_bar*r1_bar*r2_bar*pr_bar) * R
+        dot_Q[0][3] = ((1/4)*r1_bar*P4 - (1/2)*Q4_bar*r1_bar*r2_bar*pr_bar) * R   
+        '''
+        return np.array([*dot_Q, *dot_P])
+    
+    def n_body_system(self, t, *QP):
+        #With McGee
+        #Only works when energy is 0
+        dim = 4
+        n = 1
+        E = self.E
+        Z = self.Z
+        
+        Q = np.array(QP[:n])[0]
+        P = np.array(QP[n:])[0]
+        dot_Q = np.zeros([n, dim])
+        dot_P = np.zeros([n, dim])
+        
+        Q1 = Q[0]
+        Q2 = Q[1]
+        Q3 = Q[2]
+        Q4 = Q[3]
+        
+        P1 = P[0]
+        P2 = P[1]
+        P3 = P[2]
+        P4 = P[3]
+        
+        r1 = Q1**2 + Q2**2
+        r2 = Q3**2 + Q4**2
+        
+        r12 = (r1**2 + r2**2 - 2*(Q1*Q3 + Q2*Q4)**2 + 2*(Q1*Q4-Q2*Q3)**2)**0.5
+        
+        #R = (r1**2 + r2**2)**0.5
+        #E = R*E
+               
+        pr_bar = 1/2 * (Q1*P1 + Q2*P2 + Q3*P3 + Q4*P4)
+        
+        temp1 = 1/4 * Q1 * (P3**2 + P4**2) - 2*Z*Q1 + 2*Q1*r2*(-E + 1/r12)
+        temp2 = 2*((r1*r2)/(r12**3))*(r1*Q1 + (Q4**2-Q3**2)*Q1 - 2*Q2*Q3*Q4)
+        dot_P[0][0] = -(temp1 - temp2)
+        
+        temp1 = 1/4 * Q2 * (P3**2 + P4**2) - 2*Z*Q2 + 2*Q2*r2*(-E + 1/r12)
+        temp2 = 2*((r1*r2)/(r12**3))*(r1*Q2 - (Q4**2-Q3**2)*Q2 - 2*Q1*Q3*Q4)        
+        dot_P[0][1] = -(temp1 - temp2)
+        
+        temp1 = 1/4 * Q3*(P1**2 + P2**2) - 2*Z*Q3 + 2*Q3*r1*(-E + 1/r12)
+        temp2 = 2*((r1*r2)/(r12**3))*(r2*Q3 + (Q2**2 - Q1**2)*Q3 - 2*Q1*Q2*Q4)
+        dot_P[0][2] = -(temp1 - temp2)    
+        
+        temp1 = 1/4 * Q4*(P1**2 + P2**2) - 2*Z*Q4 + 2*Q4*r1*(-E + 1/r12)
+        temp2 = 2*((r1*r2)/(r12**3))*(r2*Q4 - (Q2**2 - Q1**2)*Q4 - 2*Q1*Q2*Q3)
+        dot_P[0][3] = -(temp1 - temp2)         
+        
+        '''
+        dot_Q[0][0] = (1/4)*r2*P1
+        dot_Q[0][1] = (1/4)*r2*P2
+        dot_Q[0][2] = (1/4)*r1*P3
+        dot_Q[0][3] = (1/4)*r1*P4
+
+        '''
+        dot_Q[0][0] = ((1/4)*r2*P1 - (1/2)*Q1*r1*r2*pr_bar)
+        dot_Q[0][1] = ((1/4)*r2*P2 - (1/2)*Q2*r1*r2*pr_bar)
+        dot_Q[0][2] = ((1/4)*r1*P3 - (1/2)*Q3*r1*r2*pr_bar)
+        dot_Q[0][3] = ((1/4)*r1*P4 - (1/2)*Q4*r1*r2*pr_bar)  
+
+        return np.array([*dot_Q, *dot_P])
+    
+    def cart_to_QP(self, q, p):
+        '''
+        Parameters
+        ----------
+        q : Array
+            [[x_1,y_1],[x_2,y_2]]
+        p : Array
+            [[p_x_1, p_y_1], [p_x_2, p_y_2]]
+
+        Returns
+        -------
+        Q and P and Q_bar as a turple
+
+        '''
+        
+        x1 = q[0][0]
+        x2 = q[1][0]
+        
+        y1 = q[0][1]
+        y2 = q[1][1]
+        
+        px1 = p[0][0]
+        px2 = p[1][0]
+        
+        py1 = p[0][1]
+        py2 = p[1][1]
+        
+        Q1 = ((x1+(x1**2 + y1**2)**0.5)/(2))**0.5
+        Q2 = ((-x1+(x1**2 + y1**2)**0.5)/(2))**0.5
+        Q3 = ((x2+(x2**2 + y2**2)**0.5)/(2))**0.5        
+        Q4 = ((-x2+(x2**2 + y2**2)**0.5)/(2))**0.5 
+        
+        c_y1 = 2*Q1*Q2
+        c_y2 = 2*Q3*Q4
+        
+        if y1 < 0 and c_y1 > 0:
+            Q1 = -Q1
+        if y1 > 0 and c_y1 < 0:
+            Q1 = -Q1
+        
+        if y2 < 0 and c_y2 > 0:
+            Q3 = -Q3
+        if y2 > 0 and c_y2 < 0:
+            Q3 = -Q3
+        
+        
+        r1 = Q1**2 + Q2**2
+        r2 = Q3**2 + Q4**2
+        
+        R = (r1**2 + r2**2)**0.5        
+        
+        Q1_bar = Q1/(R**0.5)
+        Q2_bar = Q2/(R**0.5)
+        Q3_bar = Q3/(R**0.5)
+        Q4_bar = Q4/(R**0.5)
+        
+        P1 = 2*(px1*Q1 + py1*Q2)
+        P2 = 2*(py1*Q1 - px1*Q2)
+        P3 = 2*(px2*Q3 + py2*Q4)
+        P4 = 2*(py2*Q3 - px2*Q4)
+        
+        
+        return np.array([Q1,Q2,Q3,Q4]), np.array([P1,P2,P3,P4]), np.array([Q1_bar,Q2_bar,Q3_bar,Q4_bar])
+    
+    def convert_cart_old(self, Parts):
+        
+        Q = Parts[0].q
+        P = Parts[0].p
+        
+        Q1 = Q[:,0]
+        Q2 = Q[:,1]
+        Q3 = Q[:,2]
+        Q4 = Q[:,3]
+        
+        P1 = P[:,0]
+        P2 = P[:,1]
+        P3 = P[:,2]
+        P4 = P[:,3]
+        
+        x1 = Q1**2 - Q2**2
+        x2 = Q3**2 - Q4**2
+        
+        y1 = 2*Q1*Q2
+        y2 = 2*Q3*Q4
+        
+        new_q1 = combine(1, x1, y1)
+        new_q2 = combine(1, x2, y2)
+        
+        return np.array([new_q1, new_q2])
+
+    def convert_cart(self, Parts):
+        
+        Q = Parts[0].q
+        P = Parts[0].p
+        
+        Q1 = Q[:,0]
+        Q2 = Q[:,1]
+        Q3 = Q[:,2]
+        Q4 = Q[:,3]
+        
+        P1 = P[:,0]
+        P2 = P[:,1]
+        P3 = P[:,2]
+        P4 = P[:,3]
+        
+        #x1 = Q1**2 - Q2**2
+        #x2 = Q3**2 - Q4**2
+        
+        #y1 = 2*Q1*Q2
+        #y2 = 2*Q3*Q4
+        
+        r1 = Q1**2 + Q2**2
+        r2 = Q3**2 + Q4**2
+        
+        #R = (r1**2 + r2**2)**0.5
+        
+        #px1 = (Q1*P1-Q2*P2)/(2*r1)
+        #px2 = (Q3*P3-Q4*P4)/(2*r2)
+        
+        #py1 = (Q2*P1+Q1*P2)/(2*r1)
+        #py2 = (Q4*P3+Q3*P4)/(2*r2)
+        
+        
+        alpha = np.arctan(r2/r1)
+        #p_r = ((r1*r2)/(2*R)) * (Q1*P1 + Q2*P2 + Q3*P3 + Q4*P4)
+        p_r = (1/2)*(Q1*P1 + Q2*P2 + Q3*P3 + Q4*P4)
+        p_alpha = (1/2)*((r2/r1)*(Q1*P1+Q2*P2)-(r1/r2)*(Q3*P3+Q4*P4)) * np.sin(2*alpha)
+        
+        #Times by np.sin(2a) section (9) in Lee Tanner
+        
+        #new_q1 = combine(1, x1, y1)
+        #new_q2 = combine(1, x2, y2)
+        
+        new_q1 = combine(1, p_r, alpha, p_alpha)
+        
+        return np.array([new_q1]) 
         
 
 class Two_Electrons_Near_TCP():

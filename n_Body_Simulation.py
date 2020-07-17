@@ -171,6 +171,11 @@ class Simulation():
         has_z = False
         if len(new_q[0][0]) == 3:
             has_z = True
+        Num_Parts_To_Add = len(new_q) - len(self.Parts)
+        #To display extra parts
+        for i in range(Num_Parts_To_Add):
+            self.AddParts(mass=[None], q_initial=[None], p_initial = [None])
+        
         for Part_Index in range(len(self.Parts)):
             self.Parts[Part_Index].x = new_q[Part_Index][:, 0]
             self.Parts[Part_Index].y = new_q[Part_Index][:, 1]
