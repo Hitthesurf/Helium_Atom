@@ -34,7 +34,7 @@ class Two_Electrons_Near_McGee():
         w = p[1]
         
 class Two_Electron_Non_Singular():
-    def __init__(self, Parts, Z = 2, E = -1):
+    def __init__(self, Parts, Z = 2, E = 0):
         # In this example the electrons have mass 1
         # The nucleus has a large mass(inf)
         self.Z = Z
@@ -116,6 +116,7 @@ class Two_Electron_Non_Singular():
         n = 1
         E = self.E
         Z = self.Z
+    
         
         Q = np.array(QP[:n])[0]
         P = np.array(QP[n:])[0]
@@ -307,8 +308,50 @@ class Two_Electron_Non_Singular():
         
         new_q1 = combine(1, p_r, alpha, p_alpha)
         
-        return np.array([new_q1]) 
+        return np.array([new_q1])
+    
+    def cart_to_energy(self, q,p):
+        '''
         
+
+        Parameters
+        ----------
+        q : ndarray
+            Holds [[x1,y1],[x2,y2]].
+        p : ndarray
+            Holds [[px1,py1],[px2,py2]].
+
+        Returns
+        -------
+        Float
+        Returns the energy
+        
+
+        '''
+        Z = self.Z
+        
+        x1 = q[0][0]
+        y1 = q[0][1]
+        
+        x2 = q[1][0]
+        y2 = q[1][1]
+        
+        px1 = p[0][0]
+        py1 = p[0][1]
+        
+        px2 = p[1][0]
+        py2 = p[1][1] 
+        
+        p1 = np.linalg.norm([px1,py1])
+        p2 = np.linalg.norm([px2,py2])
+        
+        r1 = np.linalg.norm([x1,y1])
+        r2 = np.linalg.norm([x2,y2])
+
+        r12 = np.linalg.norm([x1-x2,y1-y2])
+
+        E = p1**2/2 + p2**2/2 - Z/r1 - Z/r2 + 1/r12
+        return E
 
 class Two_Electrons_Near_TCP():
     def __init__(self, Parts, Z = 2, is_eze = True):
