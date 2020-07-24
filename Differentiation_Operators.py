@@ -54,4 +54,26 @@ class GradOfVector():
 
 
     
+def Chain_Rule(F, variables, dot_variables):
+    '''
+    Input
+    ---------
+    F: expression
+    Holds the equation
     
+    variables: array
+    Holds the variables to be diff, [x,y,z]
+    
+    dot_variables: array
+    Holds the dotted variables, [\dot{x},\dot{y},\dot{z}]
+    
+    Returns
+    ----------
+    \dot{F} = (delta F) / (delta x) * \dot{x} + ...
+    '''
+    my_expression = 0
+    for vari_index in range(len(variables)):
+        vari = variables[vari_index]
+        dot_vari = dot_variables[vari_index]
+        my_expression += sp.diff(F, vari)*dot_vari
+    return my_expression
