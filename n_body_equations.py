@@ -34,23 +34,23 @@ class Two_Electrons_Near_McGee():
         w = p[1]
         
 class Two_Electron_Non_Singular():
-    def __init__(self, Parts, Z = 2, E = 0):
+    def __init__(self, Parts, Z = 2):
         # In this example the electrons have mass 1
         # The nucleus has a large mass(inf)
         self.Z = Z
-        self.E = E
+
         #self.convert_cart = self.convert_cart_WR
 
     def n_body_system_old(self, t, *QP):
         dim = 4
         n = 1
-        E = self.E
         Z = self.Z
         
         Q = np.array(QP[:n])[0]
         P = np.array(QP[n:])[0]
         dot_Q = np.zeros([n, dim])
         dot_P = np.zeros([n, dim])
+        
         
         Q1 = Q[0]
         Q2 = Q[1]
@@ -61,6 +61,8 @@ class Two_Electron_Non_Singular():
         P2 = P[1]
         P3 = P[2]
         P4 = P[3]
+        
+        E = P[4]
         
         r1 = Q1**2 + Q2**2
         r2 = Q3**2 + Q4**2
@@ -107,21 +109,22 @@ class Two_Electron_Non_Singular():
         dot_Q[0][2] = ((1/4)*r1_bar*P3 - (1/2)*Q3_bar*r1_bar*r2_bar*pr_bar) * R
         dot_Q[0][3] = ((1/4)*r1_bar*P4 - (1/2)*Q4_bar*r1_bar*r2_bar*pr_bar) * R   
         '''
-        return np.array([*dot_Q, *dot_P])
+        return np.array([*dot_Q, *dot_P, E])
     
     def n_body_system(self, t, *QP):
         #With McGee
         #Only works when energy is 0
         dim = 4
         n = 1
-        E = self.E
         Z = self.Z
     
         
-        Q = np.array(QP[:n])[0]
-        P = np.array(QP[n:])[0]
-        dot_Q = np.zeros([n, dim])
-        dot_P = np.zeros([n, dim])
+        Q = np.array(QP[:dim])
+        P = np.array(QP[dim:])
+        dot_Q = np.zeros(dim)
+        dot_P = np.zeros(dim)
+        dot_E = 0
+        
         
         Q1 = Q[0]
         Q2 = Q[1]
@@ -132,6 +135,7 @@ class Two_Electron_Non_Singular():
         P2 = P[1]
         P3 = P[2]
         P4 = P[3]
+        E = P[4]
         
         r1 = Q1**2 + Q2**2
         r2 = Q3**2 + Q4**2
@@ -145,33 +149,29 @@ class Two_Electron_Non_Singular():
         
         temp1 = 1/4 * Q1 * (P3**2 + P4**2) - 2*Z*Q1 + 2*Q1*r2*(-E + 1/r12)
         temp2 = 2*((r1*r2)/(r12**3))*(r1*Q1 + (Q4**2-Q3**2)*Q1 - 2*Q2*Q3*Q4)
-        dot_P[0][0] = -(temp1 - temp2)
+        dot_P[0] = -(temp1 - temp2)
         
         temp1 = 1/4 * Q2 * (P3**2 + P4**2) - 2*Z*Q2 + 2*Q2*r2*(-E + 1/r12)
         temp2 = 2*((r1*r2)/(r12**3))*(r1*Q2 - (Q4**2-Q3**2)*Q2 - 2*Q1*Q3*Q4)        
-        dot_P[0][1] = -(temp1 - temp2)
+        dot_P[1] = -(temp1 - temp2)
         
         temp1 = 1/4 * Q3*(P1**2 + P2**2) - 2*Z*Q3 + 2*Q3*r1*(-E + 1/r12)
         temp2 = 2*((r1*r2)/(r12**3))*(r2*Q3 + (Q2**2 - Q1**2)*Q3 - 2*Q1*Q2*Q4)
-        dot_P[0][2] = -(temp1 - temp2)    
+        dot_P[2] = -(temp1 - temp2)    
         
         temp1 = 1/4 * Q4*(P1**2 + P2**2) - 2*Z*Q4 + 2*Q4*r1*(-E + 1/r12)
         temp2 = 2*((r1*r2)/(r12**3))*(r2*Q4 - (Q2**2 - Q1**2)*Q4 - 2*Q1*Q2*Q3)
-        dot_P[0][3] = -(temp1 - temp2)         
+        dot_P[3] = -(temp1 - temp2)         
         
-        '''
-        dot_Q[0][0] = (1/4)*r2*P1
-        dot_Q[0][1] = (1/4)*r2*P2
-        dot_Q[0][2] = (1/4)*r1*P3
-        dot_Q[0][3] = (1/4)*r1*P4
 
-        '''
-        dot_Q[0][0] = ((1/4)*r2*P1 - (1/2)*Q1*r1*r2*pr_bar)
-        dot_Q[0][1] = ((1/4)*r2*P2 - (1/2)*Q2*r1*r2*pr_bar)
-        dot_Q[0][2] = ((1/4)*r1*P3 - (1/2)*Q3*r1*r2*pr_bar)
-        dot_Q[0][3] = ((1/4)*r1*P4 - (1/2)*Q4*r1*r2*pr_bar)  
-
-        return np.array([*dot_Q, *dot_P])
+        dot_Q[0] = ((1/4)*r2*P1 - (1/2)*Q1*r1*r2*pr_bar)
+        dot_Q[1] = ((1/4)*r2*P2 - (1/2)*Q2*r1*r2*pr_bar)
+        dot_Q[2] = ((1/4)*r1*P3 - (1/2)*Q3*r1*r2*pr_bar)
+        dot_Q[3] = ((1/4)*r1*P4 - (1/2)*Q4*r1*r2*pr_bar)  
+        
+        dot_E = r1*r2*pr_bar*E
+        
+        return np.array([*dot_Q, *dot_P, dot_E])
     
     def cart_to_QP(self, q, p):
         '''
@@ -234,8 +234,10 @@ class Two_Electron_Non_Singular():
         P3 = 2*(px2*Q3 + py2*Q4)
         P4 = 2*(py2*Q3 - px2*Q4)
         
+        E = self.cart_to_energy(q,p)
+        E_bar = R*E
         
-        return np.array([Q1,Q2,Q3,Q4]), np.array([P1,P2,P3,P4]), np.array([Q1_bar,Q2_bar,Q3_bar,Q4_bar])
+        return np.array([Q1,Q2,Q3,Q4]), np.array([P1,P2,P3,P4,E_bar]), np.array([Q1_bar,Q2_bar,Q3_bar,Q4_bar]), E
     
     def convert_cart_old(self, Parts):
         
@@ -265,18 +267,17 @@ class Two_Electron_Non_Singular():
 
     def convert_cart(self, Parts):
         
-        Q = Parts[0].q
-        P = Parts[0].p
+        all_data = Parts[0].all_data.T
         
-        Q1 = Q[:,0]
-        Q2 = Q[:,1]
-        Q3 = Q[:,2]
-        Q4 = Q[:,3]
+        Q1 = all_data[0]
+        Q2 = all_data[1]
+        Q3 = all_data[2]
+        Q4 = all_data[3]
         
-        P1 = P[:,0]
-        P2 = P[:,1]
-        P3 = P[:,2]
-        P4 = P[:,3]
+        P1 = all_data[4]
+        P2 = all_data[5]
+        P3 = all_data[6]
+        P4 = all_data[7]
         
         #x1 = Q1**2 - Q2**2
         #x2 = Q3**2 - Q4**2
@@ -308,7 +309,12 @@ class Two_Electron_Non_Singular():
         
         new_q1 = combine(1, p_r, alpha, p_alpha)
         
-        return np.array([new_q1])
+        return np.real(np.array([new_q1]))
+    
+    def calc_ham(self, Parts, pos = 0, t = 0):
+        all_data = Parts[0].all_data.T
+        
+        return np.real(all_data[8][pos])
     
     def cart_to_energy(self, q,p):
         '''
@@ -501,7 +507,7 @@ class Motion_In_Cone():
         dot_p = np.zeros([n, dim])
         
         
-        dot_q[0][0] = p[0]/m     
+        dot_q[0][0] = (p[0]*np.sin(a)**2)/m     
 
         dot_q[0][1] = (p[1])/(m*(q[0])**2) 
         
@@ -538,7 +544,7 @@ class Motion_In_Cone():
         p = Parts[0].p[pos]
         
         
-        H=1/(2*m)*p[0]**2+1/(2*m*q[0]**2)*p[1]**2 + m*g*q[0]*cot(a)
+        H=1/(2*m)*p[0]**2*np.sin(a)**2+1/(2*m*q[0]**2)*p[1]**2 + m*g*q[0]*cot(a)
         
             
         return H 
