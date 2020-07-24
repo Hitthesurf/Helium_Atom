@@ -26,10 +26,10 @@ def zeta(i, j):
 def combine(step, *cords):
     if step == 0:
         step = 1
-    n_cords = np.array(cords)
+    n_cords = np.array(cords).T
     new_c = []
     for i in range(0, len(cords[0]), step):
-        Temp = n_cords[:, i]
+        Temp = n_cords[i]
         new_c.append(Temp)
     return np.array(new_c)
 
@@ -121,13 +121,17 @@ class Simulation():
         self.calc_ham = Calc_Ham
 
     def AddParts(self, mass, q_initial, p_initial, Track_Length=[500], Size_of_Particle=[15], charge=[0], Color="Blue"):
-
+        #Clear at start
+        self.Parts = []
         if charge == [0]:
             charge = charge*len(mass)
 
         for i in range(0, len(mass)):
             self.Parts.append(Particle(
                 mass[i], q_initial[i], p_initial[i], Track_Length[i], Size_of_Particle[i], charge[i], Color))
+
+        #Put all data in first Part
+        self.Parts[0].initial_data = [*q_initial, *p_initial]
 
     def CalcHamiltonian(self, show=True):
         my_class = self.Class(Parts=self.Parts)
@@ -159,12 +163,14 @@ class Simulation():
         # Decide which function to use
         ODE = ODEAnalysis(my_class.n_body_system, StepOfTime=self.time_step)
 
-        self.t, x = ODE.RungeKutta(T, 0, [*q_0, *p_0])
+        self.t, x = ODE.RungeKutta(T, 0, self.Parts[0].initial_data)
 
         # Save info to parts
         for Part_Index in range(len(self.Parts)):
+            #Would be better to store all the data in first part
             self.Parts[Part_Index].q = x[:, Part_Index]
             self.Parts[Part_Index].p = x[:, len(self.Parts) + Part_Index]
+        self.Parts[0].all_data = x
 
         # Convert Back to cart cords
         new_q = my_class.convert_cart(self.Parts)
