@@ -77,20 +77,61 @@ def radial_gravity_PE(r_cords, mass, G):
             if zeta(i,j):
                 grav_PE -= (G*m[i]*m[j])/(Norm(r_cords[i]-r_cords[j]))
             
-    return grav_PE      
+    return 
 
-def Get_Ham_Equations(r_cords, variables, dot_variables, return_Ham = False,
-                      show_working = False, simplify = False, linear_grav = -1, g=9.81, elastic_data = [],
-                      return_Ham_as_well = False, radial_gravity = False, G = 1):
+def radial_charge_PE(r_cords, charge, K):
+    c = charge
+    charge_PE=0
+    n = len(r_cords)
+    r_cords = np.array(r_cords)
+    for i in range(0,n):                
+        for j in range(0,n):
+            if zeta(i,j):
+                charge_PE += (K*c[i]*c[j])/(Norm(r_cords[i]-r_cords[j]))
+            
+    return charge_PE   
+
+def Get_Ham_Equations(r_cords, variables, return_Ham = False,
+                      show_working = False, simplify = False, linear_grav = -1,
+                      g=9.81, elastic_data = [], return_Ham_as_well = False, 
+                      radial_gravity = False, G = 1, K = 1,
+                      radial_charge = False):
+    
+    #Calculate dot_var
+    dot_variables = []
+    for var in variables:
+        display_str = r'\dot{' + sp.latex(var) + '}'
+        dot_variables.append(sp.symbols(display_str))
+        
+        
+
+    
+    #Get mass sysmbols
     display_str = r''
     for i in range(0,len(r_cords)):
         display_str += 'm_' + str(i+1) + ' '
+        
+    
         
     m = 0
     if len(r_cords) == 1:    
         m = [sp.symbols(display_str)]
     else:
         m = [*sp.symbols(display_str)]
+    
+    #Get charge symbols
+    display_str = r''
+    for i in range(0,len(r_cords)):
+        display_str += 'c_' + str(i+1) + ' '
+        
+    
+        
+    c = 0
+    if len(r_cords) == 1:    
+        c = [sp.symbols(display_str)]
+    else:
+        c = [*sp.symbols(display_str)]
+    
     
     #KE
     dot_r = []
@@ -116,6 +157,9 @@ def Get_Ham_Equations(r_cords, variables, dot_variables, return_Ham = False,
     
     if radial_gravity:
         PE += radial_gravity_PE(r_cords, m, G)
+    
+    if radial_charge:
+        PE += radial_charge_PE(r_cords, c, K)
     
     
     #Calc L
@@ -231,8 +275,9 @@ def Get_Ham_Equations(r_cords, variables, dot_variables, return_Ham = False,
         return dot_q, dot_p
 
 class Custom_System():
-    def __init__(self, r_cords, variables, mass, linear_grav = -1,
-                 g = 9.81, elastic_data = [], radial_gravity = False, G = 1, Parts = 0):
+    def __init__(self, r_cords, variables, mass, charge = [], linear_grav = -1,
+                 g = 9.81, elastic_data = [], radial_gravity = False, G = 1, Parts = 0,
+                 K = 1, radial_charge = False):
         '''
         
 
@@ -250,6 +295,8 @@ class Custom_System():
             
         mass : Array of masses
         
+        charge : Array of the charge for each particle
+            The default is [0]*len(mass)
             
         linear_grav : int, optional
             -1 means no linear gravity is considered for the PE
@@ -286,9 +333,17 @@ class Custom_System():
             Use radial gravity
             The default is False
             
+        radial_charge : Boolean, optional
+            Use radial charge
+            The default is False
+            
         G : float, optional
             The gravitational constant to use, the one in real life is
             6.67408e-11 m^3kg^-1s^-2
+            The default is 1
+            
+        K : float, optional
+            Coulomb constant,
             The default is 1
             
         Parts : int, optional
@@ -301,27 +356,24 @@ class Custom_System():
         self.r_cords = r_cords
         self.variables = variables
         
-        #Calculate dot_var
-        dot_variables = []
-        for var in self.variables:
-            display_str = r'\dot{' + sp.latex(var) + '}'
-            dot_variables.append(sp.symbols(display_str))
-        
-        
-        self.dot_variables = dot_variables
         self.m = mass
         self.H = 0
+        self.charge = charge
+        if charge == []:
+            self.charge = [0]*len(self.m)
         
-        self.dot_q, self.dot_p, self.H = Get_Ham_Equations(r_cords, variables, 
-                                                   dot_variables, return_Ham = False,
+        
+        self.dot_q, self.dot_p, self.H = Get_Ham_Equations(r_cords, variables,
+                                                           return_Ham = False,
                                                    show_working = False,
                                                    linear_grav = linear_grav,
                                                    g=g, elastic_data=elastic_data,
                                                    return_Ham_as_well=True,
                                                    radial_gravity = radial_gravity,
-                                                   G = G)
+                                                   G = G, K = K,
+                                                   radial_charge = radial_charge)
         Sub_array = []
-        #Sub mass in
+        #Sub mass and charge in
         display_str = r''
         for i in range(0,len(mass)):
             display_str += 'm_' + str(i+1) + ' '
@@ -332,8 +384,19 @@ class Custom_System():
         else:
             m_symbol = [*sp.symbols(display_str)]
             
+        display_str = r''
+        for i in range(0,len(mass)):
+            display_str += 'c_' + str(i+1) + ' '
+
+        c_symbol = 0
+        if len(mass) == 1:    
+            c_symbol = [sp.symbols(display_str)]
+        else:
+            c_symbol = [*sp.symbols(display_str)]
+            
         for i in range(len(mass)):
             Sub_array.append((m_symbol[i],mass[i]))
+            Sub_array.append((c_symbol[i],self.charge[i]))
         self.dot_q = sp.Matrix(self.dot_q).subs(Sub_array)
         self.dot_p = sp.Matrix(self.dot_p).subs(Sub_array)
         self.H = self.H.subs(Sub_array)
