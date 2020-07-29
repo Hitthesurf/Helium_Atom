@@ -106,7 +106,8 @@ class Particle():
         self.track_line = None  # to be a line
         self.point = None  # to be a point
         self.charge = charge  # Only needed if using charged n_body problem
-
+        
+        self.my_class = 0
 
 class Simulation():
     def __init__(self, Func_Class, Speed=10, time_step=0.01, Sim_Name="Simulation_Name", Calc_Ham=False):
@@ -119,6 +120,7 @@ class Simulation():
         self.Hamiltonian = []
 
         self.calc_ham = Calc_Ham
+        self.my_class = 0
 
     def AddParts(self, mass, q_initial, p_initial, Track_Length=[500], Size_of_Particle=[15], charge=[0], Color="Blue"):
         #Clear at start
@@ -134,8 +136,7 @@ class Simulation():
         self.Parts[0].initial_data = [*q_initial, *p_initial]
 
     def CalcHamiltonian(self, show=True):
-        my_class = self.Class(Parts=self.Parts)
-        calc_energy = my_class.calc_ham
+        calc_energy = self.my_class.calc_ham
         elements = len(self.t)
         H = []
         for pos in range(0, elements):
@@ -143,6 +144,11 @@ class Simulation():
         self.Hamiltonian = np.array(H)
         if show:
             return H[0]
+        
+    def CalcEquations(self):
+        #Calcs class, therefore not run in calc Path as for custom Ham can take
+        # a long time
+        self.my_class = self.Class(Parts=self.Parts)
 
     def CalcPath(self, T):
 
@@ -157,11 +163,12 @@ class Simulation():
             p_0.append(Part.p_0)
             mass.append(Part.m)
             charge.append(Part.charge)
-
-        my_class = self.Class(Parts=self.Parts)
+        
+        if self.my_class == 0:
+            self.my_class = self.Class(Parts=self.Parts)
 
         # Decide which function to use
-        ODE = ODEAnalysis(my_class.n_body_system, StepOfTime=self.time_step)
+        ODE = ODEAnalysis(self.my_class.n_body_system, StepOfTime=self.time_step)
 
         self.t, x = ODE.RungeKutta(T, 0, self.Parts[0].initial_data)
 
@@ -173,10 +180,15 @@ class Simulation():
         self.Parts[0].all_data = x
 
         # Convert Back to cart cords
-        new_q = my_class.convert_cart(self.Parts)
+        new_q = self.my_class.convert_cart(self.Parts)
         has_z = False
+        has_y = False
+        if len(new_q[0][0]) == 2:
+            has_y = True
+        
         if len(new_q[0][0]) == 3:
             has_z = True
+            has_y = True
         Num_Parts_To_Add = len(new_q) - len(self.Parts)
         #To display extra parts
         for i in range(Num_Parts_To_Add):
@@ -184,7 +196,12 @@ class Simulation():
         
         for Part_Index in range(len(self.Parts)):
             self.Parts[Part_Index].x = new_q[Part_Index][:, 0]
-            self.Parts[Part_Index].y = new_q[Part_Index][:, 1]
+            
+            if has_y:
+                self.Parts[Part_Index].y = new_q[Part_Index][:, 1]
+            else:
+                self.Parts[Part_Index].y = np.array(
+                    [0.0]*len(new_q[Part_Index][:, 0]))                
             if has_z:
                 self.Parts[Part_Index].z = new_q[Part_Index][:, 2]
             else:

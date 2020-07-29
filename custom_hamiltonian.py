@@ -17,6 +17,15 @@ def Norm_Squared(F):
         total += F_i**2
     return sp.simplify(total)
 
+def zeta(i, j):
+    if i > j:
+        return True
+    elif i <= j:
+        return False
+
+def Norm(F):
+    return sp.powsimp(Norm_Squared(F)**0.5)
+
 def Show_Latex(my_text, size = 20):
     #1 slash if raw string
     #2 slash if standard string
@@ -33,8 +42,46 @@ def linear_graph_PE(r_cords, mass, g, part):
         grav_PE += mass[r_index]*g*r_cords[r_index][part]    
     return grav_PE
 
+def elastic_PE(r_cords, elastic_data):
+    ela_PE = 0
+    for elastic_band in elastic_data:
+        spring_const = elastic_band[1][0]
+        natural_L = elastic_band[1][1]
+        From = elastic_band[0][0]
+        To = elastic_band[0][1]
+        
+        From_pos = From
+        To_pos = To
+        
+        if type(From) == int:
+            From_pos = r_cords[From]
+        if type(To) == int:
+            To_pos = r_cords[To]
+            
+        From_pos = np.array(From_pos)
+        To_pos = np.array(To_pos)
+            
+        #Calc distance between From and To
+        difference = Norm(From_pos-To_pos)
+        ela_PE += sp.simplify((1/2)*spring_const*(difference - natural_L)**2)
+    
+    return ela_PE
+
+def radial_gravity_PE(r_cords, mass, G):
+    m = mass
+    grav_PE=0
+    n = len(r_cords)
+    r_cords = np.array(r_cords)
+    for i in range(0,n):                
+        for j in range(0,n):
+            if zeta(i,j):
+                grav_PE -= (G*m[i]*m[j])/(Norm(r_cords[i]-r_cords[j]))
+            
+    return grav_PE      
+
 def Get_Ham_Equations(r_cords, variables, dot_variables, return_Ham = False,
-                      show_working = False, simplify = False, linear_grav = -1, g=9.81):
+                      show_working = False, simplify = False, linear_grav = -1, g=9.81, elastic_data = [],
+                      return_Ham_as_well = False, radial_gravity = False, G = 1):
     display_str = r''
     for i in range(0,len(r_cords)):
         display_str += 'm_' + str(i+1) + ' '
@@ -63,8 +110,13 @@ def Get_Ham_Equations(r_cords, variables, dot_variables, return_Ham = False,
     #Linear Grav
     if linear_grav != -1:
         PE += linear_graph_PE(r_cords, m, g, linear_grav)
+        
+    if elastic_data != []:
+        PE += elastic_PE(r_cords, elastic_data)
     
-
+    if radial_gravity:
+        PE += radial_gravity_PE(r_cords, m, G)
+    
     
     #Calc L
     L = sp.simplify(KE - PE)
@@ -171,19 +223,103 @@ def Get_Ham_Equations(r_cords, variables, dot_variables, return_Ham = False,
             q_i = variables[vari_index]
             Show_Latex("$\\dot{" +sp.latex(q_i) + "} = "+str(sp.latex(dot_q_i))+"$")
             Show_Latex("$\\dot{" +sp.latex(p_i) + "} = "+str(sp.latex(dot_p_i))+"$")
-            
-    return dot_q, dot_p
+    
+    
+    if return_Ham_as_well:     
+        return dot_q, dot_p, H
+    else:
+        return dot_q, dot_p
 
 class Custom_System():
-    def __init__(self, r_cords, variables, dot_variables, mass, linear_grav = -1, Parts = 0):
+    def __init__(self, r_cords, variables, mass, linear_grav = -1,
+                 g = 9.81, elastic_data = [], radial_gravity = False, G = 1, Parts = 0):
+        '''
+        
+
+        Parameters
+        ----------
+        r_cords : Array of cord
+            contains the position cords of the particels.
+            example
+            [r1]
+            [r1,r2,r3]
+            
+        variables : Array of sympy symbols
+            contains the variables that change in the r_cords.
+            
+            
+        mass : Array of masses
+        
+            
+        linear_grav : int, optional
+            -1 means no linear gravity is considered for the PE
+            0 means linear gravity taken in x axis
+            1 means linear gravity taken in y axis
+            2 means linear gravity taken in z axis
+            
+            Therefore, applies linear gravity on the ith section of each
+            r cord
+            The default is -1.
+            
+        g : float, optional
+            The value of acceleration due to constant/linear gravity .
+            The default is 9.81.
+            
+        elastic_data : Array, optional
+            Store information on calcualting PE of spring.
+            [  [[From,To],[k,l]] 
+             ....
+             ....
+             ....
+            ]
+            k = spring_constant
+            l = natural length
+            From = number takes that particles location ie,
+             From_pos = r_cords[From]
+            if take an array uses that as the position
+            Same for To
+            
+            If no elastic PE then set to []            
+            The default is [].
+            
+        radial_gravity : Boolean, optional
+            Use radial gravity
+            The default is False
+            
+        G : float, optional
+            The gravitational constant to use, the one in real life is
+            6.67408e-11 m^3kg^-1s^-2
+            The default is 1
+            
+        Parts : int, optional
+            Here to make compatible with simulation class, so we can get
+            nice animations.
+            The default is 0.
+
+
+        '''
         self.r_cords = r_cords
         self.variables = variables
+        
+        #Calculate dot_var
+        dot_variables = []
+        for var in self.variables:
+            display_str = r'\dot{' + sp.latex(var) + '}'
+            dot_variables.append(sp.symbols(display_str))
+        
+        
         self.dot_variables = dot_variables
         self.m = mass
+        self.H = 0
         
-        self.dot_q, self.dot_p = Get_Ham_Equations(r_cords, variables, 
+        self.dot_q, self.dot_p, self.H = Get_Ham_Equations(r_cords, variables, 
                                                    dot_variables, return_Ham = False,
-                                                   show_working = False, linear_grav = linear_grav)
+                                                   show_working = False,
+                                                   linear_grav = linear_grav,
+                                                   g=g, elastic_data=elastic_data,
+                                                   return_Ham_as_well=True,
+                                                   radial_gravity = radial_gravity,
+                                                   G = G)
         Sub_array = []
         #Sub mass in
         display_str = r''
@@ -200,6 +336,7 @@ class Custom_System():
             Sub_array.append((m_symbol[i],mass[i]))
         self.dot_q = sp.Matrix(self.dot_q).subs(Sub_array)
         self.dot_p = sp.Matrix(self.dot_p).subs(Sub_array)
+        self.H = self.H.subs(Sub_array)
         
         
         #Retrieve momentum vars
@@ -222,6 +359,7 @@ class Custom_System():
         
         self.f_dot_q = sp.lambdify(my_vari, list(self.dot_q))
         self.f_dot_p = sp.lambdify(my_vari, list(self.dot_p))
+        self.f_H = sp.lambdify(my_vari, self.H)
         
         
     def n_body_system(self, t, *qp):
@@ -241,6 +379,11 @@ class Custom_System():
         
         
         return np.array([*dot_q, *dot_p])
+    
+    def calc_ham(self, Parts, pos=0, t=0):
+        all_data = Parts[0].all_data
+        return np.real(self.f_H(*all_data[pos]))
+    
     
     def convert_cart(self,Parts):
         new_q = []
