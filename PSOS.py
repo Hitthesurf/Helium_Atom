@@ -13,6 +13,8 @@ from matplotlib import pyplot as plt
 from joblib import Parallel, delayed
 from multiprocessing import cpu_count
 
+from tqdm import tqdm
+
 import warnings
 warnings.filterwarnings("ignore")
 
@@ -84,7 +86,7 @@ def PSOS(p_R_array, T = -30, theta_ratios = np.linspace(0,1,5), dots = True,
     if parallel:
         num_cores = cpu_count()
         results = Parallel(n_jobs = num_cores)(delayed(par_get_S_DEP1_2)(theta_ratio = theta_ratio)
-                                               for theta_ratio in theta_ratios)
+                                               for theta_ratio in tqdm(theta_ratios))
         
         for S_DEP1, S_DEP2 in results:
             S_DEP1s.append(S_DEP1)
