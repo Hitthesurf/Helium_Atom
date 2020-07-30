@@ -147,5 +147,11 @@ def PSOS(p_R_array, T = -30, theta_ratios = np.linspace(0,1,5), dots = True,
             plt.savefig('PSOS_PR_is_'+str(p_R)+'.png')
         
         plt.show()
+        
+if __name__ == "__main__":
+    sections = np.linspace(-10,15,150)
+    PSOS([3., 0,-0.5,-1,-1.5,-2, -2.5, -3.146346284, -4],
+         theta_ratios = sections,
+         parallel = True, dots = True, save=True)
           
     
