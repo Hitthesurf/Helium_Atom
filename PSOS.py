@@ -57,7 +57,7 @@ def get_S_DEP1_2(par_class, T, theta_ratio, delta):
 
 
 def PSOS(p_R_array, T = -30, theta_ratios = np.linspace(0,1,5), dots = True,
-         parallel = False, save = False, delta = 1e-4):
+         parallel = False, save = False, delta = 1e-3):
     E = 0
     Z = 2
     
