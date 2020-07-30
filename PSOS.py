@@ -75,7 +75,7 @@ def PSOS(p_R_array, T = -30, theta_ratios = np.linspace(0,1,5), dots = True,
                                T = T, delta = delta)
     
     if parallel is False:
-        for theta_ratio in theta_ratios:
+        for theta_ratio in tqdm(theta_ratios):
             
             
             S_DEP1, S_DEP2 = par_get_S_DEP1_2(theta_ratio = theta_ratio)
