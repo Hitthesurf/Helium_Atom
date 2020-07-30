@@ -13,6 +13,9 @@ from matplotlib import pyplot as plt
 from joblib import Parallel, delayed
 from multiprocessing import cpu_count
 
+import warnings
+warnings.filterwarnings("ignore")
+
 def sigmoid(x):
     return (np.e**x)/(np.e**x + 1)
 
@@ -66,21 +69,21 @@ def PSOS(p_R_array, T = -30, theta_ratios = np.linspace(0,1,5), dots = True,
     S_DEP1s = []
     S_DEP2s = []
     par_Two_Electrons_Near_Non_Singular = partial(Two_Electron_Non_Singular, Z = Z)
-    par_get_S_DEP1_2 = partial(get_S_DEP1_2,par_class = par_Two_Electrons_Near_Non_Singular, T = T)
+    par_get_S_DEP1_2 = partial(get_S_DEP1_2,par_class = par_Two_Electrons_Near_Non_Singular,
+                               T = T, delta = delta)
     
     if parallel is False:
         for theta_ratio in theta_ratios:
             
             
-            S_DEP1, S_DEP2 = par_get_S_DEP1_2(theta_ratio = theta_ratio, delta = delta)
+            S_DEP1, S_DEP2 = par_get_S_DEP1_2(theta_ratio = theta_ratio)
 
             S_DEP1s.append(S_DEP1)
             S_DEP2s.append(S_DEP2)
             
     if parallel:
         num_cores = cpu_count()
-        results = Parallel(n_jobs = num_cores)(delayed(par_get_S_DEP1_2)(theta_ratio = theta_ratio,
-                                                                         delta = delta)
+        results = Parallel(n_jobs = num_cores)(delayed(par_get_S_DEP1_2)(theta_ratio = theta_ratio)
                                                for theta_ratio in theta_ratios)
         
         for S_DEP1, S_DEP2 in results:
@@ -105,7 +108,8 @@ def PSOS(p_R_array, T = -30, theta_ratios = np.linspace(0,1,5), dots = True,
         y = np.linspace(0.001, np.pi/2, 1000)
         pos_x = eZe_E0(y, pR = p_R)
         neg_x = -pos_x
-        plt.figure()
+        plt.style.use('dark_background')
+        plt.figure(figsize=(7,7))
         plt.title("$p_R = " + str(p_R) + "$")
         plt.xlabel(r"$p_{\alpha}$")
         plt.ylabel(r"$\alpha$")
