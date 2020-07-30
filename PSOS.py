@@ -15,8 +15,6 @@ from multiprocessing import cpu_count
 
 from tqdm import tqdm
 
-import warnings
-warnings.filterwarnings("ignore")
 
 def sigmoid(x):
     return (np.e**x)/(np.e**x + 1)

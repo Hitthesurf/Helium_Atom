@@ -119,10 +119,10 @@ class Two_Electron_Non_Singular():
         Z = self.Z
     
         
-        Q = np.array(QP[:dim])
-        P = np.array(QP[dim:])
-        dot_Q = np.zeros(dim)
-        dot_P = np.zeros(dim)
+        Q = np.array(QP[:dim], dtype=np.complex)
+        P = np.array(QP[dim:], dtype=np.complex)
+        dot_Q = np.zeros(dim, dtype=np.complex)
+        dot_P = np.zeros(dim, dtype=np.complex)
         dot_E = 0
         
         
