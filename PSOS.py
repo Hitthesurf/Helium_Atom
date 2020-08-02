@@ -98,7 +98,7 @@ def DisplayGraphs(p_R_array, T = -40, show = True,
             
             
             S_DEP1s.append(QuickPart(x, y, z))  
-            if counter % step_check:
+            if counter % step_check == 0:
                 print(counter)
             counter +=1
             
@@ -122,7 +122,7 @@ def DisplayGraphs(p_R_array, T = -40, show = True,
             
 
             S_DEP2s.append(QuickPart(x, y, z))
-            if counter % step_check:
+            if counter % step_check == 0:
                 print(counter)
             counter +=1      
         f_DEP2.close()
