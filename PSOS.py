@@ -190,6 +190,8 @@ def DisplayGraphs(p_R_array, T = -40, show = False,
             plt.savefig('PSOSPNG/PSOS_PR_is_'+str(p_R)+'.png', dpi = 270)
         if show:
             plt.show()
+        plt.close()
+    
 
 def PSOS(p_R_array, T = -30, theta_ratios = np.linspace(0,1,5), dots = True,
          parallel = False, save = False, save_data_to_file = False,
