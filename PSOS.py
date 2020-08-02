@@ -68,6 +68,7 @@ def DisplayGraphs(p_R_array, T = -40, show = True,
                   save = True, file_name = "PSOS_", S_DEP1s = [], S_DEP2s = [],
                   read_file = False, delta = 1e-3, dots = True):
     Z = 2
+    step_check = 100
     my_axis = [[-3.5,3.5],[-0.2,2]]
     S_DEP1s = S_DEP1s
     S_DEP2s = S_DEP2s
@@ -81,7 +82,7 @@ def DisplayGraphs(p_R_array, T = -40, show = True,
         S_DEP2_name = file_name + "S_DEP2.txt"
         
         f_DEP1 = open(S_DEP1_name, 'r')
-        
+        counter = 0
         while True:
             str_x = f_DEP1.readline()
             str_y = f_DEP1.readline()
@@ -95,13 +96,17 @@ def DisplayGraphs(p_R_array, T = -40, show = True,
             y = np.array(str_y.split(','), dtype = float)
             z = np.array(str_z.split(','), dtype = float)
             
-
+            
             S_DEP1s.append(QuickPart(x, y, z))  
+            if counter % step_check:
+                print(counter)
+            counter +=1
+            
         f_DEP1.close()
                        
         
         f_DEP2 = open(S_DEP2_name, 'r')
-        
+        counter = 0
         while True:
             str_x = f_DEP2.readline()
             str_y = f_DEP2.readline()
@@ -116,7 +121,10 @@ def DisplayGraphs(p_R_array, T = -40, show = True,
             z = np.array(str_z.split(','), dtype = float)
             
 
-            S_DEP2s.append(QuickPart(x, y, z))            
+            S_DEP2s.append(QuickPart(x, y, z))
+            if counter % step_check:
+                print(counter)
+            counter +=1      
         f_DEP2.close()
         
         
@@ -254,18 +262,21 @@ def PSOS(p_R_array, T = -30, theta_ratios = np.linspace(0,1,5), dots = True,
                     
         
 if __name__ == "__main__":
-    if True:
-        sections = np.linspace(-12,2,14000)
+    if False:
+        sections = np.linspace(-12,2,14001)
         PSOS([3., 0,-0.5,-1,-1.5,-2, -2.5, -3.146346284, -4],
              theta_ratios = sections,
              parallel = True, dots = True, save_data_to_file = True,
              file_start = "PSOS_")
         
     if False:
-        sections = np.linspace(2,16,14000)
+        sections = np.linspace(2,16,14001)
         PSOS([3., 0,-0.5,-1,-1.5,-2, -2.5, -3.146346284, -4],
              theta_ratios = sections,
              parallel = True, dots = True, save_data_to_file = True,
              file_start = "PSOS1_")
-          
+        
+    
+    if True:
+        DisplayGraphs([-4,-3.14,-2,0,1,3], read_file = True)
     
