@@ -64,7 +64,7 @@ class QuickPart():
         
         
 
-def DisplayGraphs(p_R_array, T = -40, show = True,
+def DisplayGraphs(p_R_array, T = -40, show = False,
                   save = True, file_name = "PSOS_", S_DEP1s = [], S_DEP2s = [],
                   read_file = False, delta = 1e-3, dots = True):
     Z = 2
@@ -173,8 +173,8 @@ def DisplayGraphs(p_R_array, T = -40, show = True,
                     
                     
             if dots: 
-                plt.scatter(p_alpha[0::2], alpha[0::2], s=4, color = 'Red', label = 'Stable eZe, DEP')
-                plt.scatter(p_alpha[1::2], alpha[1::2], s=4, color = 'Green', label = 'Stable eZe, DEP')
+                plt.scatter(p_alpha[0::2], alpha[0::2], s=1, color = 'Red', label = 'Stable eZe, DEP')
+                plt.scatter(p_alpha[1::2], alpha[1::2], s=1, color = 'Green', label = 'Stable eZe, DEP')
                     
             if dots is False:
                 plt.plot(p_alpha[0::2], alpha[0::2], color = 'Red', label = 'Stable eZe, DEP')
@@ -187,7 +187,7 @@ def DisplayGraphs(p_R_array, T = -40, show = True,
         plt.ylim(my_axis[1])
         plt.legend(loc = 'upper left')
         if save:
-            plt.savefig('PSOSPNG/PSOS_PR_is_'+str(p_R)+'.png')
+            plt.savefig('PSOSPNG/PSOS_PR_is_'+str(p_R)+'.png', dpi = 270)
         if show:
             plt.show()
 
@@ -278,5 +278,8 @@ if __name__ == "__main__":
         
     
     if True:
-        DisplayGraphs([-4,-3.14,-2,0,1,3], read_file = True)
+        P_r = np.linspace(-6,3.14,458)
+        P_r = np.append(P_r, -3.146346284)
+        P_r = np.sort(P_r)
+        DisplayGraphs(P_r, read_file = True, file_name = "COM_PSOS_")
     
