@@ -52,7 +52,7 @@ Here are two electrons orbiting a nucleus. This is done by using ipyvolume.
 
 ### Motion In Cone Example
 ![Alt Text](https://raw.githubusercontent.com/Hitthesurf/Helium_Atom/master/Simulations/PNG_Sim/Motion_In_Cone_Question.png?raw=true)
-By calculating the Lagrangian then the Hamiltonian, we get a system of ODEs which can be simulated, by using alpha = pi/4, q_R = 3, q_theta = 0, p_R = 0, p_theta=3. By using n_Body_Simulation we get.
-![Alt Text](https://raw.githubusercontent.com/Hitthesurf/Helium_Atom/master/Simulations/PNG_Sim/Static_Motion_Of_Cone.png?raw=true)
-![Alt Text](https://raw.githubusercontent.com/Hitthesurf/Helium_Atom/master/Simulations/PNG_Sim/Static_Motion_Of_Cone_with_color.png?raw=true)
+By calculating the Lagrangian then the Hamiltonian, we get a system of ODEs which can be simulated, by using alpha = pi/4, q_R = 3, q_theta = 0, p_R = 0, p_theta=5. By using n_Body_Simulation we get.
+![Alt Text](https://raw.githubusercontent.com/Hitthesurf/Helium_Atom/master/Simulations/PNG_Sim/Static_Motion_In_Cone.png?raw=true)
+![Alt Text](https://raw.githubusercontent.com/Hitthesurf/Helium_Atom/master/Simulations/PNG_Sim/Static_Motion_In_Cone_with_color.png?raw=true)
 ![Alt Text](https://raw.githubusercontent.com/Hitthesurf/Helium_Atom/master/Simulations/GIF_Sim/Motion_In_Cone.gif?raw=true)
