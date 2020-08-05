@@ -1,6 +1,8 @@
 # Helium_Atom
 Phase Space Structures In The 'Helium Atom'
 
+Check out the Stable Manifold of The DEP for Helium Atom, PSOS.py was used to help create it
+https://youtu.be/lIJapem30_s
 
 ## Example simulations of n-body problems
 
