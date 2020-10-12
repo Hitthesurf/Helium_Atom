@@ -198,6 +198,34 @@ class ODEAnalysis():
         self.f = ODE_To_Use  # Current function of RungeKutta
         self.ODE = ODE_To_Use  # ODE system with linearisation
         self.ODELin = ODELin_To_Use  # ODE system without linearisation
+        
+        
+    def StreakLine(self, start_t, stop_t, x_0, plot = False):
+        '''
+        Plot the streakline(shows flow of dye added to liquid)
+        start_t the time at which the dye enters the system
+        stop_t the time at which the snapshot is taken
+        pos the position where the dye is being entered
+        
+        could make parralle
+        '''
+        
+        this_dt = self.dt*10
+        final_x = []
+        for time_start in np.arange(start_t,stop_t,this_dt):
+            temp_t, temp_x = self.RungeKutta(stop_t,time_start, x_0)
+            final_x.append(temp_x[-1])
+            
+        final_x = np.array(final_x)
+        
+        if not(plot):
+            return final_x
+        
+        #Plot graph, only works if 2D
+        x = final_x[:,0]
+        y = final_x[:,1]
+        plt.plot(x, y)
+        
 
     def RungeKutta(self, T, t_0, x_0):
         # As Start at zero so need an extra addition of dt
